@@ -69,7 +69,7 @@ export function SuggestionPanel({
       )}
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-dark">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="mb-3 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

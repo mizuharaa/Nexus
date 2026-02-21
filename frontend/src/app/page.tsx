@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { InteractiveDotGrid } from "@/components/background/InteractiveDotGrid";
 import { RepoInput } from "@/components/modals/RepoInput";
 import { FeatureGraphView } from "@/components/graph/FeatureGraphView";
 import { SuggestionPanel } from "@/components/panels/SuggestionPanel";
 import { AddFeatureFlow } from "@/components/modals/AddFeatureFlow";
 import { PlanPanel } from "@/components/panels/PlanPanel";
+import { Network, ListChecks, Plus } from "lucide-react";
 import { getRepo } from "@/services/api";
 import type { Repo, FeatureSuggestion } from "@/types";
 
@@ -43,77 +45,56 @@ export default function Home() {
   const isReady = repo?.status === "ready";
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-border px-6 py-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">PE</span>
-          </div>
-          <h1 className="text-lg font-semibold tracking-tight">
-            Product Evolution Engine
-          </h1>
-        </div>
-
-        {/* Tabs — only shown when repo is ready */}
+    <div className="flex h-screen w-screen overflow-hidden relative">
+      <InteractiveDotGrid />
+      {/* Side tab nav */}
+      <nav className="flex flex-col w-14 shrink-0 border-r border-border bg-card/50 backdrop-blur-sm py-3 gap-1">
         {isReady && (
-          <div className="flex rounded-lg border border-border p-1 bg-muted/30">
+          <>
             <button
               onClick={() => setActiveTab("graph")}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-2 px-2 rounded-r-md transition-colors ${
                 activeTab === "graph"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
+              title="Graph"
             >
-              Graph
+              <Network className="size-5" />
+              <span className="text-[10px] font-medium">Graph</span>
             </button>
             <button
               onClick={() => setActiveTab("plan")}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`flex flex-col items-center gap-0.5 py-2 px-2 rounded-r-md transition-colors ${
                 activeTab === "plan"
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
+              title="Plan"
             >
-              Plan
+              <ListChecks className="size-5" />
+              <span className="text-[10px] font-medium">Plan</span>
             </button>
-          </div>
+            {activeTab === "graph" && (
+              <button
+                onClick={() => setShowAddFeature(true)}
+                className="flex flex-col items-center gap-0.5 py-2 px-2 rounded-r-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mt-2"
+                title="Add feature"
+              >
+                <Plus className="size-5" />
+                <span className="text-[10px] font-medium">Add</span>
+              </button>
+            )}
+          </>
         )}
-
-        {isReady && activeTab === "graph" && (
-          <button
-            onClick={() => setShowAddFeature(true)}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-          >
-            + Add feature
-          </button>
-        )}
-
-        {repo && (
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{repo.name}</span>
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                repo.status === "ready"
-                  ? "bg-emerald-500/10 text-emerald-400"
-                  : repo.status === "analyzing"
-                    ? "bg-amber-500/10 text-amber-400"
-                    : repo.status === "error"
-                      ? "bg-red-500/10 text-red-400"
-                      : "bg-zinc-500/10 text-zinc-400"
-              }`}
-            >
-              {repo.status}
-            </span>
-          </div>
-        )}
-      </header>
+      </nav>
 
       {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden min-w-0">
         {!repo ? (
-          <RepoInput onRepoCreated={setRepo} />
+          <div className="flex min-h-0 w-full flex-1">
+            <RepoInput onRepoCreated={setRepo} />
+          </div>
         ) : !isReady ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
@@ -122,8 +103,8 @@ export default function Home() {
             </div>
           </div>
         ) : activeTab === "graph" ? (
-          <>
-            <main className="flex-1 relative">
+          <div className="flex flex-1 min-h-0 min-w-0 overflow-hidden flex-row">
+            <main className="flex-1 min-w-0 relative overflow-hidden">
               <FeatureGraphView
                 repoId={repo.id}
                 onNodeSelect={(nodeId) => {
@@ -138,7 +119,7 @@ export default function Home() {
             </main>
 
             {showSuggestions && selectedNodeId && (
-              <aside className="w-96 border-l border-border overflow-y-auto">
+              <aside className="w-96 shrink-0 border-l border-border overflow-y-auto scrollbar-dark">
                 <SuggestionPanel
                   nodeId={selectedNodeId}
                   suggestions={suggestions}
@@ -147,7 +128,7 @@ export default function Home() {
                 />
               </aside>
             )}
-          </>
+          </div>
         ) : (
           <PlanPanel repoId={repo.id} />
         )}

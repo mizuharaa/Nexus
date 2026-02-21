@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ReactFlow,
-  Background,
   Controls,
   MiniMap,
   useNodesState,
@@ -335,8 +334,9 @@ export function FeatureGraphView({
   }
 
   return (
-    <div className="h-full w-full relative">
+    <div className="graph-with-dot-bg h-full w-full relative">
       <ReactFlow
+        className="relative z-[1] !bg-transparent"
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -349,7 +349,6 @@ export function FeatureGraphView({
         maxZoom={2}
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#27272a" gap={24} />
         <Controls
           className="!bg-card !border-border !rounded-lg"
           showInteractive={false}
@@ -367,7 +366,7 @@ export function FeatureGraphView({
 
       {/* Bottom bar */}
       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-lg bg-card/80 backdrop-blur-sm border border-border px-4 py-2 text-xs text-muted-foreground">
+        <div className="pointer-events-auto ml-14 flex items-center gap-3 rounded-lg bg-card/80 backdrop-blur-sm border border-border px-4 py-2 text-xs text-muted-foreground">
           <span>{rawFeatures.length} features</span>
           <span className="text-border">|</span>
           <span>{rawEdges.length} connections</span>

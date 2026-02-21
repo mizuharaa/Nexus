@@ -40,7 +40,48 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* React Flow dark theme overrides */
-.react-flow__background {
-  background-color: var(--background) !important;
+/* Graph - transparent so fullscreen dot grid shows through */
+.graph-with-dot-bg .react-flow,
+.graph-with-dot-bg .react-flow__viewport {
+  background: transparent !important;
+}
+
+/* Controls (fit view, zoom in, zoom out) - dark theme for visibility */
+.react-flow {
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+}
+.react-flow__controls-button {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+.react-flow__controls-button:hover {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* Dark-themed scrollbar for panels */
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+.scrollbar-dark::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
