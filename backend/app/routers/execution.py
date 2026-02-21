@@ -1,11 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from app.schemas.execution import (
     BuildRequest,
     ExecutionRunResponse,
     ExecutionLogResponse,
 )
 from app.db import get_supabase
+from app.dependencies import get_openai_key
 
 router = APIRouter(prefix="/api", tags=["execution"])
 
@@ -14,7 +14,10 @@ router = APIRouter(prefix="/api", tags=["execution"])
     "/features/{node_id}/build", response_model=ExecutionRunResponse
 )
 async def build_feature(
-    node_id: str, body: BuildRequest, background_tasks: BackgroundTasks
+    node_id: str,
+    body: BuildRequest,
+    background_tasks: BackgroundTasks,
+    openai_key: str | None = Depends(get_openai_key),
 ):
     """Trigger autonomous feature implementation via Claude Code."""
     db = get_supabase()
@@ -65,7 +68,9 @@ async def build_feature(
     # Kick off background execution
     from app.workers.analysis_worker import run_execution
 
-    background_tasks.add_task(run_execution, execution_run["id"])
+    background_tasks.add_task(
+        run_execution, execution_run["id"], openai_api_key=openai_key
+    )
 
     return execution_run
 

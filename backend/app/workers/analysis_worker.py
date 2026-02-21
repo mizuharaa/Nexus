@@ -96,20 +96,14 @@ async def run_analysis(repo_id: str, openai_api_key: str | None = None) -> None:
                 pass
 
 
-async def run_execution(execution_run_id: str) -> None:
+async def run_execution(
+    execution_run_id: str, openai_api_key: str | None = None
+) -> None:
     """Background task: run autonomous feature build."""
     try:
         from app.services.execution_service import execute_build
 
         await execute_build(execution_run_id)
-    except NotImplementedError:
-        logger.warning(
-            f"Execution {execution_run_id} — service not yet implemented"
-        )
-        db = get_supabase()
-        db.table("execution_runs").update(
-            {"status": "failed"}
-        ).eq("id", execution_run_id).execute()
     except Exception as e:
         logger.exception(f"Execution failed for run {execution_run_id}: {e}")
         db = get_supabase()
