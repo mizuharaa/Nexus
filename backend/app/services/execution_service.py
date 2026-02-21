@@ -186,12 +186,17 @@ async def _generate_plan(
         "You are given the complete file tree of the repository. "
         "Use it to determine the project's language, framework, and structure — "
         "do NOT assume or invent a stack. Every file you reference in the plan MUST "
-        "match the language and conventions already present in the repo. "
-        "Write a clear, step-by-step Plan.md the agent will follow to implement the feature. "
-        "Include:\n"
+        "match the language and conventions already present in the repo.\n\n"
+        "Write a Plan.md that is SELF-CONTAINED and PRESCRIPTIVE. "
+        "The coding agent that reads this plan has a limited context window and CANNOT "
+        "explore the codebase freely — it must follow your plan without reading any other files. "
+        "Therefore your plan MUST include:\n"
         "- Feature name and description\n"
-        "- Files to create or modify (must match the repo's existing language)\n"
-        "- Step-by-step implementation instructions\n"
+        "- Exact list of files to create or modify (full relative paths)\n"
+        "- For each file: the specific functions/classes/lines to add or change, "
+        "with concrete code snippets where possible\n"
+        "- Exact import statements to add\n"
+        "- Step-by-step instructions the agent can execute top-to-bottom without guessing\n"
         "- Constraints: do NOT modify .env, CI configs, or deployment configs\n"
         "- Max 25 files changed\n\n"
         "Also write a complete test file for the feature using the testing framework already "
@@ -491,6 +496,7 @@ async def _invoke_claude_code(
         *claude_cmd,
         "-p", prompt,
         "--allowedTools", "Read,Edit,Write,Bash",
+        "--disallowedTools", "Task,TodoWrite,TodoRead,WebFetch,WebSearch",
         "--output-format", "stream-json",
         "--verbose",
     ]
@@ -835,17 +841,19 @@ async def execute_build_phase(execution_run_id: str) -> None:
 
             if iteration == 0:
                 prompt = (
-                    f"Implement the feature described in Plan.md. "
-                    f"Follow the plan step by step. "
-                    f"Run the tests in {test_file_ref}. "
-                    f"Do not modify .env, CI configs, or deployment configs. "
+                    f"Read Plan.md and implement the feature exactly as described.\n"
+                    f"Follow the plan step by step.\n"
+                    f"IMPORTANT: Only read files that Plan.md explicitly tells you to create or modify. "
+                    f"Do NOT explore the rest of the codebase — you will run out of context.\n"
+                    f"The test file is at {test_file_ref}. Run it to verify your implementation.\n"
+                    f"Do not modify .env, CI configs, or deployment configs.\n"
                     f"Max 25 files changed."
                 )
             else:
                 prompt = (
-                    f"The previous implementation attempt failed verification. "
-                    f"Fix the issues and ensure all tests pass. "
-                    f"Review Plan.md for the original requirements. "
+                    f"The previous implementation attempt failed verification.\n"
+                    f"Read Plan.md for requirements. Fix only what the verification output says is wrong.\n"
+                    f"IMPORTANT: Only read files you actually need to fix — do NOT re-explore the codebase.\n"
                     f"Do not modify .env, CI configs, or deployment configs.\n\n"
                     f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
@@ -997,16 +1005,18 @@ async def retry_build_phase(execution_run_id: str) -> None:
         _log(execution_run_id, "build", "Retrying build with error context from previous attempt")
 
         prompt = (
-            f"Implement the feature described in Plan.md. "
-            f"Follow the plan step by step. "
-            f"Run the tests in {test_file_ref}. "
-            f"Do not modify .env, CI configs, or deployment configs. "
+            f"Read Plan.md and implement the feature exactly as described.\n"
+            f"Follow the plan step by step.\n"
+            f"IMPORTANT: Only read files that Plan.md explicitly tells you to create or modify. "
+            f"Do NOT explore the rest of the codebase — you will run out of context.\n"
+            f"The test file is at {test_file_ref}. Run it to verify your implementation.\n"
+            f"Do not modify .env, CI configs, or deployment configs.\n"
             f"Max 25 files changed."
         )
         if error_context:
             prompt += (
                 f"\n\nIMPORTANT: The previous build attempt failed with these errors. "
-                f"Fix these issues:\n{error_context}"
+                f"Fix these specific issues:\n{error_context}"
             )
 
         max_iterations = settings.max_fix_iterations
@@ -1038,9 +1048,9 @@ async def retry_build_phase(execution_run_id: str) -> None:
                 iteration += 1
                 # Update prompt with actual failure output for next iteration
                 prompt = (
-                    f"The previous implementation attempt failed verification. "
-                    f"Fix the issues and ensure all tests pass. "
-                    f"Review Plan.md for the original requirements. "
+                    f"The previous implementation attempt failed verification.\n"
+                    f"Read Plan.md for requirements. Fix only what the verification output says is wrong.\n"
+                    f"IMPORTANT: Only read files you actually need to fix — do NOT re-explore the codebase.\n"
                     f"Do not modify .env, CI configs, or deployment configs.\n\n"
                     f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
