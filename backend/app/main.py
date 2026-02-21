@@ -10,7 +10,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import repos, features, branches, execution
+from app.routers import repos, features, execution
 
 
 logging.basicConfig(level=logging.INFO)
@@ -46,7 +46,6 @@ app.add_middleware(
 # Register routers
 app.include_router(repos.router)
 app.include_router(features.router)
-app.include_router(branches.router)
 app.include_router(execution.router)
 
 
