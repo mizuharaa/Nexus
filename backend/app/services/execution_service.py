@@ -495,8 +495,7 @@ async def _invoke_claude_code(
     cmd = [
         *claude_cmd,
         "-p", prompt,
-        "--allowedTools", "Read,Edit,Write,Bash",
-        "--disallowedTools", "Task,TodoWrite,TodoRead,WebFetch,WebSearch",
+        "--allowedTools", "Read,Edit,Write,Bash,Glob,Grep",
         "--output-format", "stream-json",
         "--verbose",
     ]
@@ -598,20 +597,37 @@ async def _run_verification(
     sandbox_path: str,
     language: str,
     scripts: dict[str, str],
+    test_file_ref: str = "",
 ) -> tuple[bool, str]:
     """Run the appropriate test suite for the project language.
 
     Returns (passed, error_output). error_output is non-empty on failure
     and contains the actual test/lint output so it can be fed back to Claude.
+
+    For Python: runs only the feature test file (test_file_ref) to avoid
+    collecting the full test suite, which may have pre-existing failures or
+    import-path mismatches when run from the sandbox root.
     """
     root = Path(sandbox_path)
 
     if language == "python":
-        exit_code, stdout, stderr = await _run_command(
-            "python -m pytest --tb=short -q", cwd=sandbox_path
-        )
+        # Determine what to run: prefer the specific feature test file
+        if test_file_ref and (root / test_file_ref).exists():
+            target = test_file_ref
+        else:
+            # Fallback: run all tests (may surface unrelated failures)
+            target = ""
+            if test_file_ref:
+                logger.warning(
+                    f"Feature test file not found: {test_file_ref}. "
+                    "Running full pytest suite."
+                )
+
+        cmd = f"python -m pytest {target} --tb=short -q" if target else "python -m pytest --tb=short -q"
+        exit_code, stdout, stderr = await _run_command(cmd, cwd=sandbox_path)
+        output = (stdout + "\n" + stderr).strip()
         if exit_code != 0:
-            return False, (stdout + stderr).strip()
+            return False, output or f"pytest exited with code {exit_code} (no output captured)"
         return True, ""
 
     if language == "java":
@@ -868,7 +884,7 @@ async def execute_build_phase(execution_run_id: str) -> None:
             _update_status(execution_run_id, "verifying")
             _log(execution_run_id, "verify", f"Running verification (iteration {iteration})")
 
-            verified, verify_error = await _run_verification(sandbox_path, language, scripts)
+            verified, verify_error = await _run_verification(sandbox_path, language, scripts, test_file_ref)
 
             if verified:
                 _log(execution_run_id, "verify", "All checks passed!")
@@ -1036,7 +1052,7 @@ async def retry_build_phase(execution_run_id: str) -> None:
             _update_status(execution_run_id, "verifying")
             _log(execution_run_id, "verify", f"Running verification (iteration {iteration})")
 
-            verified, verify_error = await _run_verification(sandbox_path, language, scripts)
+            verified, verify_error = await _run_verification(sandbox_path, language, scripts, test_file_ref)
 
             if verified:
                 _log(execution_run_id, "verify", "All checks passed!")
