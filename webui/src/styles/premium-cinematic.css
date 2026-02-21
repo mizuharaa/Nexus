@@ -1,0 +1,468 @@
+/* Premium Cinematic Enhancements */
+
+/* Headline Glow */
+.nexus-headline-glow {
+  position: relative;
+}
+
+.nexus-headline-glow::before {
+  content: '';
+  position: absolute;
+  inset: -40px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(123, 92, 255, 0.15) 0%,
+    transparent 70%
+  );
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Gradient Text */
+.nexus-gradient-text {
+  background: linear-gradient(135deg, #7B5CFF 0%, #C14CFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Light Sweep Animation */
+.nexus-light-sweep {
+  position: relative;
+  overflow: hidden;
+}
+
+.nexus-light-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  animation: sweep 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes sweep {
+  0%, 100% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+}
+
+/* CTA Glow */
+.nexus-cta-glow {
+  position: relative;
+}
+
+.nexus-cta-glow::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, #7B5CFF, #C14CFF);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  filter: blur(8px);
+}
+
+.nexus-cta-glow:hover::before {
+  opacity: 0.4;
+}
+
+/* Mesh Gradient Background */
+.nexus-mesh-gradient {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(at 10% 20%, rgba(123, 92, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(at 90% 80%, rgba(193, 76, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(56, 217, 255, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* 3D Morphing Object */
+.nexus-morph-container {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  perspective: 1200px;
+  overflow: hidden;
+}
+
+.nexus-morph-object {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  height: 400px;
+  transform-style: preserve-3d;
+  animation: morphRotate 30s linear infinite;
+}
+
+@keyframes morphRotate {
+  0% {
+    transform: translate(-50%, -50%) rotateX(10deg) rotateY(0deg) rotateZ(0deg);
+  }
+  33% {
+    transform: translate(-50%, -50%) rotateX(20deg) rotateY(120deg) rotateZ(10deg);
+  }
+  66% {
+    transform: translate(-50%, -50%) rotateX(5deg) rotateY(240deg) rotateZ(-5deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotateX(10deg) rotateY(360deg) rotateZ(0deg);
+  }
+}
+
+.nexus-morph-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(123, 92, 255, 0.2), rgba(193, 76, 255, 0.2));
+  border: 1px solid rgba(123, 92, 255, 0.3);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+}
+
+.nexus-morph-face-1 {
+  transform: rotateY(0deg) translateZ(200px);
+}
+
+.nexus-morph-face-2 {
+  transform: rotateY(90deg) translateZ(200px);
+}
+
+.nexus-morph-face-3 {
+  transform: rotateY(180deg) translateZ(200px);
+}
+
+.nexus-morph-face-4 {
+  transform: rotateY(-90deg) translateZ(200px);
+}
+
+.nexus-morph-face-5 {
+  transform: rotateX(90deg) translateZ(200px);
+}
+
+.nexus-morph-face-6 {
+  transform: rotateX(-90deg) translateZ(200px);
+}
+
+/* Gloss Effect */
+.nexus-gloss {
+  position: relative;
+  overflow: hidden;
+}
+
+.nexus-gloss::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Globe Orbit Lines */
+.nexus-orbit {
+  position: absolute;
+  border: 1px solid rgba(123, 92, 255, 0.15);
+  border-radius: 50%;
+  animation: orbitRotate 20s linear infinite;
+}
+
+@keyframes orbitRotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Gradient Divider */
+.nexus-divider-gradient {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(123, 92, 255, 0.4) 50%,
+    transparent 100%
+  );
+}
+
+/* Phase Indicator */
+.nexus-phase-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(123, 92, 255, 0.1);
+  border: 1px solid rgba(123, 92, 255, 0.3);
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7B5CFF;
+}
+
+.nexus-phase-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7B5CFF;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
+/* Large Node System */
+.nexus-large-node {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #7B5CFF 0%, #5A3FCC 100%);
+  box-shadow: 0 0 20px rgba(123, 92, 255, 0.4);
+  position: relative;
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+@keyframes nodePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(123, 92, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(123, 92, 255, 0.6);
+  }
+}
+
+.nexus-large-connection {
+  stroke: url(#largeGradient);
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.5;
+  filter: drop-shadow(0 0 4px rgba(123, 92, 255, 0.3));
+}
+
+/* Performance Badge */
+.nexus-performance-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: rgba(0, 208, 132, 0.1);
+  border: 1px solid rgba(0, 208, 132, 0.3);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00D084;
+  box-shadow: 0 0 20px rgba(0, 208, 132, 0.2);
+}
+
+/* Globe Container */
+.nexus-globe-container {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexus-globe-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Globe Stats */
+.nexus-globe-stats {
+  position: absolute;
+  right: 8%;
+  top: 50%;
+  transform: translateY(-50%);
+  text-align: right;
+}
+
+.nexus-stat-value {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #7B5CFF, #C14CFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nexus-stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 24px;
+}
+
+/* 3D Panel */
+.nexus-3d-panel {
+  background: rgba(20, 20, 25, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* Parallax Layers */
+.nexus-parallax-layer-1 {
+  transform: translateZ(0);
+}
+
+.nexus-parallax-layer-2 {
+  transform: translateZ(20px);
+}
+
+.nexus-parallax-layer-3 {
+  transform: translateZ(40px);
+}
+
+/* Section Headline Enhancement */
+.nexus-section-headline {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: white;
+  position: relative;
+}
+
+.nexus-section-headline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -12px;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #7B5CFF, transparent);
+}
+
+/* Subtle Glow Backgrounds */
+.nexus-glow-purple {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(123, 92, 255, 0.12) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.nexus-glow-magenta {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(193, 76, 255, 0.12) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* 3D Suggestion Card */
+.nexus-suggestion-card-3d {
+  background: rgba(10, 10, 10, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left: 3px solid #7B5CFF;
+  border-radius: 2px;
+  padding: 16px 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.nexus-suggestion-card-3d:hover {
+  transform: translateZ(10px);
+}
+
+/* Implementation Panel */
+.nexus-implementation-panel {
+  background: #090909;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  padding: 20px;
+  min-width: 320px;
+}
+
+.nexus-implementation-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nexus-implementation-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+}
+
+.nexus-implementation-step.active {
+  color: #7B5CFF;
+}
+
+/* Contrast Enhancement */
+.nexus-high-contrast {
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .nexus-morph-container {
+    height: 400px;
+  }
+  
+  .nexus-morph-object {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .nexus-globe-stats {
+    position: static;
+    transform: none;
+    text-align: center;
+    margin-top: 32px;
+  }
+}
