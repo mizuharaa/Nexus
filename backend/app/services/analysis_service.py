@@ -145,6 +145,51 @@ async def generate_repo_digest(repo_path: str) -> dict:
         except (json.JSONDecodeError, OSError):
             pass
 
+    # Parse Python project files (requirements.txt / pyproject.toml)
+    if framework is None:
+        py_deps: dict[str, str] = {}
+        req_path = root / "requirements.txt"
+        if req_path.exists():
+            try:
+                import re as _re
+                for line in req_path.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        pkg_name = _re.split(r"[>=<!~;\[]", line)[0].strip().lower()
+                        if pkg_name:
+                            py_deps[pkg_name] = "*"
+            except OSError:
+                pass
+
+        pyproject_path = root / "pyproject.toml"
+        if pyproject_path.exists() and not py_deps:
+            try:
+                content = pyproject_path.read_text(encoding="utf-8")
+                import re as _re
+                # Extract dependencies from [project.dependencies] or [tool.poetry.dependencies]
+                for match in _re.findall(r'"?([\w-]+)\s*[>=<!~]', content):
+                    py_deps[match.lower()] = "*"
+            except OSError:
+                pass
+
+        if py_deps or (root / "pyproject.toml").exists() or req_path.exists():
+            dependencies = py_deps
+            # Detect specific Python framework
+            for fw in ("fastapi", "django", "flask"):
+                if fw in py_deps:
+                    framework = fw
+                    break
+            else:
+                framework = "python"
+
+    # Parse Java project files (pom.xml / build.gradle)
+    if framework is None:
+        pom_path = root / "pom.xml"
+        gradle_path = root / "build.gradle"
+        gradle_kts_path = root / "build.gradle.kts"
+        if pom_path.exists() or gradle_path.exists() or gradle_kts_path.exists():
+            framework = "spring" if pom_path.exists() else "java"
+
     return {
         "file_tree": sorted(file_tree),
         "framework": framework,
