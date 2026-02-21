@@ -2,7 +2,6 @@ import type {
   Repo,
   FeatureGraph,
   FeatureSuggestion,
-  StrategicBranch,
   ExecutionRun,
   ExecutionLog,
 } from "@/types";
@@ -73,22 +72,6 @@ export async function getSuggestions(
   return fetchJSON<FeatureSuggestion[]>(
     `/api/features/${nodeId}/suggestions`
   );
-}
-
-// ---- Strategic Branches ----
-
-export async function simulateFutures(
-  repoId: string
-): Promise<StrategicBranch[]> {
-  return fetchJSON<StrategicBranch[]>(`/api/repos/${repoId}/simulate`, {
-    method: "POST",
-  });
-}
-
-export async function getBranches(
-  repoId: string
-): Promise<StrategicBranch[]> {
-  return fetchJSON<StrategicBranch[]>(`/api/repos/${repoId}/branches`);
 }
 
 // ---- Execution ----

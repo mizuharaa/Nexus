@@ -56,22 +56,6 @@ export interface FeatureSuggestion {
   implementation_sketch: string | null;
 }
 
-// ---- Strategic Branches ----
-
-export interface StrategicBranch {
-  id: string;
-  repo_id: string;
-  branch_name: string;
-  theme: string;
-  initiatives_json: Record<string, unknown>[];
-  architecture_impact: string | null;
-  scalability_impact: string | null;
-  risk_impact: string | null;
-  tradeoffs: string | null;
-  execution_order: string[];
-  narrative: string | null;
-}
-
 // ---- Execution ----
 
 export type ExecutionStatus =

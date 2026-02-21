@@ -11,18 +11,9 @@ import {
   type Node,
   type Edge,
 } from "@xyflow/react";
-import {
-  getFeatureGraph,
-  getSuggestions,
-  simulateFutures,
-} from "@/services/api";
+import { getFeatureGraph, getSuggestions } from "@/services/api";
 import { FeatureGraphNode } from "./FeatureGraphNode";
-import type {
-  FeatureNode,
-  FeatureEdge,
-  FeatureSuggestion,
-  StrategicBranch,
-} from "@/types";
+import type { FeatureNode, FeatureEdge, FeatureSuggestion } from "@/types";
 
 const nodeTypes = { feature: FeatureGraphNode };
 
@@ -34,13 +25,10 @@ const V_GAP = 24;
 interface FeatureGraphViewProps {
   repoId: string;
   onNodeSelect: (nodeId: string) => void;
-  onSimulate: () => void;
   setSuggestions: (s: FeatureSuggestion[]) => void;
   loadingSuggestions: boolean;
   setLoadingSuggestions: (loading: boolean) => void;
   onSuggestionsLoaded?: () => void;
-  setBranches: (b: StrategicBranch[]) => void;
-  setSimulateError: (e: string | null) => void;
 }
 
 // -----------------------------------------------------------------------
@@ -151,13 +139,10 @@ function buildLayout(
 export function FeatureGraphView({
   repoId,
   onNodeSelect,
-  onSimulate,
   setSuggestions,
   loadingSuggestions,
   setLoadingSuggestions,
   onSuggestionsLoaded,
-  setBranches,
-  setSimulateError,
 }: FeatureGraphViewProps) {
   const [rawFeatures, setRawFeatures] = useState<FeatureNode[]>([]);
   const [rawEdges, setRawEdges] = useState<FeatureEdge[]>([]);
@@ -258,18 +243,6 @@ export function FeatureGraphView({
     [onNodeSelect, setSuggestions, setLoadingSuggestions, onSuggestionsLoaded]
   );
 
-  const handleSimulate = useCallback(async () => {
-    onSimulate();
-    setSimulateError(null);
-    try {
-      const branches = await simulateFutures(repoId);
-      setBranches(branches);
-    } catch (err) {
-      setSimulateError(err instanceof Error ? err.message : "Failed to simulate");
-      setBranches([]);
-    }
-  }, [repoId, onSimulate, setBranches, setSimulateError]);
-
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -353,12 +326,6 @@ export function FeatureGraphView({
           )}
         </div>
 
-        <button
-          onClick={handleSimulate}
-          className="pointer-events-auto rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
-        >
-          Simulate Futures
-        </button>
       </div>
 
       {/* Notification when generating (panel closed) */}
