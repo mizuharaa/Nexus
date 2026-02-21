@@ -78,6 +78,7 @@ export interface ExecutionRun {
   sandbox_path: string | null;
   branch_name: string | null;
   pr_url: string | null;
+  pr_merged: boolean;
   plan_md: string | null;
   iteration_count: number;
   started_at: string | null;

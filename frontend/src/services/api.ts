@@ -150,6 +150,12 @@ export async function abandonExecution(
   });
 }
 
+export async function markPrMerged(runId: string): Promise<ExecutionRun> {
+  return fetchJSON<ExecutionRun>(`/api/execution/${runId}/on-merged`, {
+    method: "POST",
+  });
+}
+
 export async function getExecutionStatus(
   runId: string
 ): Promise<ExecutionRun> {

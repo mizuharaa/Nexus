@@ -8,6 +8,7 @@ import {
   retryExecution,
   updatePlan,
   abandonExecution,
+  markPrMerged,
 } from "@/services/api";
 import type { ExecutionRun, ExecutionLog, ExecutionStatus } from "@/types";
 
@@ -103,6 +104,7 @@ export function ExecutionModal({ runId, onClose }: ExecutionModalProps) {
   const [retrying, setRetrying] = useState(false);
   const [abandoning, setAbandoning] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [markingMerged, setMarkingMerged] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef(true);
 
@@ -243,6 +245,19 @@ export function ExecutionModal({ runId, onClose }: ExecutionModalProps) {
       setAbandoning(false);
     }
   }, [runId, onClose]);
+
+  const handleMarkMerged = useCallback(async () => {
+    setMarkingMerged(true);
+    setActionError(null);
+    try {
+      const updated = await markPrMerged(runId);
+      setRun(updated);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to mark as merged");
+    } finally {
+      setMarkingMerged(false);
+    }
+  }, [runId]);
 
   const handleStartEditPlan = useCallback(() => {
     setEditingPlan(true);
@@ -477,31 +492,62 @@ export function ExecutionModal({ runId, onClose }: ExecutionModalProps) {
             </div>
           )}
 
-          {/* Done: show logs summary */}
+          {/* Done: show logs summary + merge action */}
           {isDone && (
-            <div className="p-4 font-mono text-xs bg-background/50">
-              {statusLogs
-                .filter((l) =>
-                  ["build", "verify", "push", "done"].includes(l.step)
-                )
-                .map((log) => (
-                  <div
-                    key={log.id}
-                    className={`py-0.5 leading-relaxed ${
-                      log.log_level === "error"
-                        ? "text-red-400"
-                        : log.log_level === "warn"
-                          ? "text-amber-400"
-                          : "text-muted-foreground"
-                    }`}
-                  >
-                    <span className="text-zinc-600 select-none">
-                      [{log.step}]
-                    </span>{" "}
-                    {log.message}
-                  </div>
-                ))}
-              <div ref={logEndRef} />
+            <div className="p-4 space-y-4">
+              <div className="font-mono text-xs bg-background/50">
+                {statusLogs
+                  .filter((l) =>
+                    ["build", "verify", "push", "done"].includes(l.step)
+                  )
+                  .map((log) => (
+                    <div
+                      key={log.id}
+                      className={`py-0.5 leading-relaxed ${
+                        log.log_level === "error"
+                          ? "text-red-400"
+                          : log.log_level === "warn"
+                            ? "text-amber-400"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      <span className="text-zinc-600 select-none">
+                        [{log.step}]
+                      </span>{" "}
+                      {log.message}
+                    </div>
+                  ))}
+                <div ref={logEndRef} />
+              </div>
+
+              {/* Mark as merged */}
+              {run?.pr_url && (
+                <div className="rounded-lg border border-border p-4 space-y-2">
+                  <p className="text-sm font-medium">After merging the PR</p>
+                  <p className="text-xs text-muted-foreground">
+                    Once you merge the PR on GitHub, mark it here to add the built feature as a node in the graph.
+                  </p>
+                  {run.pr_merged ? (
+                    <div className="flex items-center gap-2 text-xs text-emerald-400">
+                      <span>✓</span>
+                      <span>Feature added to graph</span>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleMarkMerged}
+                        disabled={markingMerged}
+                        className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                      >
+                        {markingMerged ? "Adding to graph…" : "Mark PR as Merged"}
+                      </button>
+                      {actionError && (
+                        <p className="text-xs text-red-400">{actionError}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

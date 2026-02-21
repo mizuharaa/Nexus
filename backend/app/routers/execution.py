@@ -170,6 +170,74 @@ async def abandon_execution_route(run_id: str):
     return updated
 
 
+@router.post("/execution/{run_id}/on-merged", response_model=ExecutionRunResponse)
+async def on_pr_merged(run_id: str):
+    """Mark a completed run's PR as merged and add the built feature as a child node."""
+    import uuid
+    from app.services.graph_cache import invalidate_graph_cache
+
+    db = get_supabase()
+    result = db.table("execution_runs").select("*").eq("id", run_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Execution run not found")
+
+    run = result.data[0]
+    if run["status"] != "done":
+        raise HTTPException(status_code=400, detail="Run must be in 'done' status")
+    if run.get("pr_merged"):
+        return run  # idempotent — already processed
+
+    # Fetch suggestion and its parent node
+    suggestion = (
+        db.table("feature_suggestions")
+        .select("*")
+        .eq("id", run["feature_suggestion_id"])
+        .execute()
+    )
+    if not suggestion.data:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+    sugg = suggestion.data[0]
+
+    parent_node_id = sugg["feature_node_id"]
+    parent_node = (
+        db.table("feature_nodes").select("*").eq("id", parent_node_id).execute()
+    )
+    if not parent_node.data:
+        raise HTTPException(status_code=404, detail="Parent feature node not found")
+
+    analysis_run_id = parent_node.data[0]["analysis_run_id"]
+
+    # Create child node representing what was built
+    new_node_id = str(uuid.uuid4())
+    db.table("feature_nodes").insert({
+        "id": new_node_id,
+        "analysis_run_id": analysis_run_id,
+        "name": sugg["name"],
+        "description": sugg.get("rationale", ""),
+        "parent_feature_id": parent_node_id,
+        "anchor_files": sugg.get("impacted_files", []),
+    }).execute()
+
+    # Create tree edge
+    db.table("feature_edges").insert({
+        "analysis_run_id": analysis_run_id,
+        "source_node_id": parent_node_id,
+        "target_node_id": new_node_id,
+        "edge_type": "tree",
+    }).execute()
+
+    # Mark run as merged and invalidate graph cache
+    updated = (
+        db.table("execution_runs")
+        .update({"pr_merged": True})
+        .eq("id", run_id)
+        .execute()
+    )
+    invalidate_graph_cache(run["repo_id"])
+
+    return updated.data[0]
+
+
 @router.get("/execution/{run_id}", response_model=ExecutionRunResponse)
 async def get_execution_status(run_id: str):
     """Get execution run status."""

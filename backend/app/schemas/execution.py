@@ -19,6 +19,7 @@ class ExecutionRunResponse(BaseModel):
     sandbox_path: str | None = None
     branch_name: str | None = None
     pr_url: str | None = None
+    pr_merged: bool = False
     plan_md: str | None = None
     iteration_count: int = 0
     started_at: datetime | None = None
