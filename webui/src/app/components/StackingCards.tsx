@@ -10,6 +10,9 @@ const cards = [
       "Clone your repo and parse every file, import, and dependency edge.",
       "Build a full knowledge graph of your codebase in seconds.",
     ],
+    accent: "#8b5cf6",
+    glow: "rgba(139, 92, 246, 0.07)",
+    border: "rgba(139, 92, 246, 0.14)",
   },
   {
     num: "02",
@@ -19,6 +22,9 @@ const cards = [
       "AI maps risk zones, tech debt hotspots, and architectural weak points.",
       "Generates a prioritized action plan ranked by impact and urgency.",
     ],
+    accent: "#6366f1",
+    glow: "rgba(99, 102, 241, 0.07)",
+    border: "rgba(99, 102, 241, 0.14)",
   },
   {
     num: "03",
@@ -28,6 +34,9 @@ const cards = [
       "Autonomous agents write, refactor, and patch code across your stack.",
       "Every change is sandboxed and validated before it touches production.",
     ],
+    accent: "#22d3ee",
+    glow: "rgba(34, 211, 238, 0.06)",
+    border: "rgba(34, 211, 238, 0.12)",
   },
   {
     num: "04",
@@ -37,6 +46,9 @@ const cards = [
       "Runs tests, lints, and security scans against every generated diff.",
       "Nothing ships without passing your existing CI/CD pipeline gates.",
     ],
+    accent: "#34d399",
+    glow: "rgba(52, 211, 153, 0.06)",
+    border: "rgba(52, 211, 153, 0.12)",
   },
   {
     num: "05",
@@ -46,6 +58,9 @@ const cards = [
       "Opens clean pull requests with full context, reasoning, and audit trail.",
       "One-click merge — your codebase evolves while you focus on what matters.",
     ],
+    accent: "#f472b6",
+    glow: "rgba(244, 114, 182, 0.06)",
+    border: "rgba(244, 114, 182, 0.12)",
   },
 ];
 
@@ -91,10 +106,15 @@ export default function StackingCards() {
           <article
             key={card.num}
             className="stackCard"
-            style={{
-              top: `${12 + i * 2}vh`,
-              zIndex: i + 1,
-            }}
+            style={
+              {
+                top: `${12 + i * 2}vh`,
+                zIndex: i + 1,
+                "--card-accent": card.accent,
+                "--card-glow": card.glow,
+                "--card-border": card.border,
+              } as React.CSSProperties
+            }
           >
             <span className="stackCard__num" aria-hidden="true">
               {card.num}
@@ -107,6 +127,9 @@ export default function StackingCards() {
             <p className="stackCard__body">{card.lines[1]}</p>
           </article>
         ))}
+
+        {/* Spacer gives the last card scroll room so sticky engages */}
+        <div style={{ height: "50vh" }} aria-hidden="true" />
       </div>
     </section>
   );

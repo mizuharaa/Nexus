@@ -22,16 +22,57 @@
   padding: 2.5rem 3rem;
   border-radius: 0.75rem;
   margin-bottom: 40vh;
-  background: rgba(14, 14, 20, 0.98);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  background:
+    linear-gradient(
+      160deg,
+      rgba(14, 14, 22, 0.98) 0%,
+      rgba(18, 14, 28, 0.98) 60%,
+      rgba(14, 14, 22, 0.98) 100%
+    );
+  border: 1px solid var(--card-border, rgba(139, 92, 246, 0.1));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 4px 24px rgba(0, 0, 0, 0.4),
-    0 16px 48px rgba(0, 0, 0, 0.2);
+    0 16px 48px rgba(0, 0, 0, 0.25);
 }
 
-.stackCard:last-child {
-  margin-bottom: 40vh;
+.stackCard:last-of-type {
+  margin-bottom: 0;
+}
+
+/* Top-edge gradient accent — shifts color per card */
+.stackCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 10%,
+    var(--card-accent, #8b5cf6) 50%,
+    transparent 90%
+  );
+  opacity: 0.35;
+}
+
+/* Corner glow — subtle color wash per card */
+.stackCard::after {
+  content: "";
+  position: absolute;
+  bottom: -40%;
+  right: -15%;
+  width: 55%;
+  height: 80%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    var(--card-glow, rgba(139, 92, 246, 0.05)) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
 }
 
 /* ── Card internals ── */
@@ -45,7 +86,7 @@
   line-height: 1;
   pointer-events: none;
   user-select: none;
-  color: rgba(255, 255, 255, 0.025);
+  color: var(--card-border, rgba(139, 92, 246, 0.06));
 }
 
 .stackCard__badge {
@@ -56,13 +97,15 @@
   text-transform: uppercase;
   padding: 0.25rem 0.7rem;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border, rgba(139, 92, 246, 0.1));
+  color: var(--card-accent, #8b5cf6);
+  background: var(--card-glow, rgba(139, 92, 246, 0.05));
   margin-bottom: 1.25rem;
+  opacity: 0.7;
 }
 
 .stackCard__title {
+  position: relative;
   font-size: clamp(1.75rem, 4vw, 2.5rem);
   font-weight: 800;
   text-transform: uppercase;
@@ -73,8 +116,9 @@
 }
 
 .stackCard__body {
+  position: relative;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.4);
   line-height: 1.7;
   max-width: 36rem;
 }
@@ -86,22 +130,16 @@
 /* ── Light-theme overrides ── */
 
 .nexus-light .stackCard {
-  background: rgba(250, 250, 252, 0.98);
-  border-color: rgba(0, 0, 0, 0.06);
+  background: linear-gradient(
+    160deg,
+    rgba(250, 250, 255, 0.98) 0%,
+    rgba(245, 243, 252, 0.98) 60%,
+    rgba(250, 250, 255, 0.98) 100%
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 4px 24px rgba(0, 0, 0, 0.04),
     0 16px 48px rgba(0, 0, 0, 0.06);
-}
-
-.nexus-light .stackCard__num {
-  color: rgba(0, 0, 0, 0.025);
-}
-
-.nexus-light .stackCard__badge {
-  border-color: rgba(0, 0, 0, 0.07);
-  color: rgba(0, 0, 0, 0.35);
-  background: rgba(0, 0, 0, 0.02);
 }
 
 .nexus-light .stackCard__title {
