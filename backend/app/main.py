@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Product Evolution Engine API starting up")
+    from app.services.execution_service import cleanup_stale_runs
+    await cleanup_stale_runs()
     yield
     logger.info("Product Evolution Engine API shutting down")
 

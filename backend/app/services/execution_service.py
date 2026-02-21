@@ -45,6 +45,80 @@ class ImplementationPlan(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
+# Directories to skip when walking the sandbox file tree
+_SKIP_DIRS = {
+    "node_modules", ".git", ".venv", "venv", "__pycache__",
+    "dist", "build", ".next", ".turbo", ".cache", "coverage",
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", "vendor",
+    "target",  # Java/Rust build output
+}
+
+# Max characters of file-tree text to include in OpenAI prompts.
+# Prevents hitting context limits on very large repos (~100k+ files).
+_MAX_TREE_CHARS = 80_000
+
+
+def _walk_sandbox_tree(sandbox_path: str) -> list[str]:
+    """Walk the sandbox and return all relative file paths, excluding junk dirs."""
+    root = Path(sandbox_path)
+    paths: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        rel_dir = Path(dirpath).relative_to(root)
+        for fname in filenames:
+            rel = str(rel_dir / fname).replace("\\", "/")
+            if rel.startswith("./"):
+                rel = rel[2:]
+            paths.append(rel)
+    return sorted(paths)
+
+
+def _detect_feature_language(
+    impacted_files: list[str],
+    file_tree: list[str],
+) -> str:
+    """Return the primary language of a feature: 'python', 'typescript', or 'java'.
+
+    Uses the feature's impacted_files as the primary signal (feature-scoped),
+    falling back to the dominant language across the whole repo if impacted_files
+    are empty or don't give a clear answer.
+    """
+    def _counts(files: list[str]) -> tuple[int, int, int]:
+        py   = sum(1 for f in files if f.endswith(".py"))
+        ts   = sum(1 for f in files if f.endswith((".ts", ".tsx", ".js", ".jsx")))
+        java = sum(1 for f in files if f.endswith(".java"))
+        return py, ts, java
+
+    py, ts, java = _counts(impacted_files)
+    if py > ts and py > java:
+        return "python"
+    if ts > py and ts > java:
+        return "typescript"
+    if java > py and java > ts:
+        return "java"
+
+    # Ambiguous or no impacted_files — fall back to dominant language in the repo
+    py, ts, java = _counts(file_tree)
+    if py >= ts and py >= java:
+        return "python"
+    if ts >= py and ts >= java:
+        return "typescript"
+    return "java"
+
+
+def _slugify_pascal(slug: str) -> str:
+    """Convert a kebab-case slug to PascalCase (for Java class names)."""
+    return "".join(word.capitalize() for word in slug.split("-"))
+
+
+def _test_file_ref(language: str, feature_slug: str) -> str:
+    """Return the relative test file path for the given language and feature slug."""
+    if language == "python":
+        return f"tests/test_{feature_slug}.py"
+    if language == "java":
+        return f"src/test/java/Test{_slugify_pascal(feature_slug)}.java"
+    return f"__tests__/{feature_slug}.test.ts"
+
 
 def _update_status(run_id: str, status: str, **extra_fields) -> None:
     """Update execution run status in Supabase."""
@@ -98,90 +172,100 @@ async def _clone_to_sandbox(
 
 async def _generate_plan(
     suggestion: dict,
-    digest: dict | None,
+    file_tree: list[str],
     api_key: str | None = None,
-) -> str:
-    """Generate a Plan.md string for Claude Code to follow."""
+) -> ImplementationPlan:
+    """Generate a Plan.md and test file via a single OpenAI call.
+
+    file_tree is the live recursive file listing of the cloned sandbox,
+    giving the LLM direct evidence of the project's language and structure.
+    Returns an ImplementationPlan with both 'plan' and 'test_code' fields.
+    """
     system_prompt = (
         "You are a senior engineer writing an implementation plan for an AI coding agent. "
-        "Write a clear, step-by-step Plan.md that the agent will follow to implement the feature. "
+        "You are given the complete file tree of the repository. "
+        "Use it to determine the project's language, framework, and structure — "
+        "do NOT assume or invent a stack. Every file you reference in the plan MUST "
+        "match the language and conventions already present in the repo. "
+        "Write a clear, step-by-step Plan.md the agent will follow to implement the feature. "
         "Include:\n"
         "- Feature name and description\n"
-        "- Files to create or modify\n"
+        "- Files to create or modify (must match the repo's existing language)\n"
         "- Step-by-step implementation instructions\n"
         "- Constraints: do NOT modify .env, CI configs, or deployment configs\n"
         "- Max 25 files changed\n\n"
-        "Return a JSON object with key 'plan' containing the markdown plan text, "
-        "and key 'test_code' containing test file contents."
+        "Also write a complete test file for the feature using the testing framework already "
+        "present in the repo (infer it from the file tree — e.g. pytest for .py, JUnit for .java, "
+        "Jest/Vitest for .ts/.tsx). Do not invent a framework not already in the repo.\n\n"
+        "Return a JSON object with key 'plan' containing the markdown plan text "
+        "and key 'test_code' containing the full test file contents."
     )
+
+    tree_str = "\n".join(file_tree)
+    if len(tree_str) > _MAX_TREE_CHARS:
+        truncated = tree_str[:_MAX_TREE_CHARS]
+        last_nl = truncated.rfind("\n")
+        tree_str = (truncated[:last_nl] if last_nl != -1 else truncated) + \
+                   f"\n... (truncated — {len(file_tree)} files total)"
+        logger.warning(
+            f"File tree truncated to {_MAX_TREE_CHARS} chars for plan generation "
+            f"({len(file_tree)} files)"
+        )
 
     user_content = (
         f"Feature: {suggestion['name']}\n"
         f"Rationale: {suggestion['rationale']}\n"
         f"Complexity: {suggestion['complexity']}\n"
-        f"Impacted files: {json.dumps(suggestion.get('impacted_files', []))}\n"
+        f"Impacted files hint: {json.dumps(suggestion.get('impacted_files', []))}\n"
         f"Implementation sketch: {suggestion.get('implementation_sketch', 'N/A')}\n"
-        f"Test cases: {json.dumps(suggestion.get('test_cases', []))}\n"
+        f"Test cases: {json.dumps(suggestion.get('test_cases', []))}\n\n"
+        f"Repository file tree ({len(file_tree)} files):\n{tree_str}"
     )
 
-    if digest:
-        user_content += (
-            f"\nRepo context:\n"
-            f"Framework: {digest.get('framework', 'unknown')}\n"
-            f"Dependencies: {json.dumps(digest.get('dependencies', {}))}\n"
-            f"Scripts: {json.dumps(digest.get('scripts', {}))}\n"
-        )
-
-    result = await call_llm_structured(
+    return await call_llm_structured(
         system_prompt=system_prompt,
         user_prompt=user_content,
         response_model=ImplementationPlan,
         api_key=api_key,
     )
-    return result.plan
 
 
 async def _generate_test_file(
     suggestion: dict,
-    digest: dict | None = None,
+    file_tree: list[str],
     api_key: str | None = None,
 ) -> str:
-    """Generate test file contents via OpenAI."""
-    framework = (digest.get("framework") or "unknown") if digest else "unknown"
-    dependencies = digest.get("dependencies", {}) if digest else {}
+    """Generate test file contents via OpenAI.
 
-    # Determine test framework from project context
-    is_python = (
-        "fastapi" in framework.lower()
-        or "django" in framework.lower()
-        or "flask" in framework.lower()
-        or "pytest" in str(dependencies).lower()
-        or any(k in dependencies for k in ("fastapi", "django", "flask", "pytest"))
-    )
-    if is_python:
-        test_framework_hint = (
-            "Use pytest for Python. Write a .py test file using pytest conventions "
-            "(def test_..., use httpx.AsyncClient or TestClient for FastAPI). "
-            "Do NOT use Jest, supertest, or any JavaScript testing library."
-        )
-    else:
-        test_framework_hint = (
-            "Use jest/vitest for JavaScript/TypeScript. "
-            "Do NOT use pytest or any Python testing library."
-        )
-
+    file_tree is the live recursive file listing of the cloned sandbox.
+    The LLM infers the correct test framework from the repo structure.
+    """
     system_prompt = (
         "You are a senior test engineer. Write test code for the described feature. "
-        f"{test_framework_hint} "
+        "You are given the complete file tree of the repository. "
+        "Use it to determine the correct testing framework and conventions already "
+        "used in the project — do NOT assume or invent a test stack. "
+        "Match the language of the existing source files exactly. "
         "Return a JSON object with key 'plan' containing a brief note and "
         "'test_code' containing the full test file contents."
     )
 
+    tree_str = "\n".join(file_tree)
+    if len(tree_str) > _MAX_TREE_CHARS:
+        truncated = tree_str[:_MAX_TREE_CHARS]
+        last_nl = truncated.rfind("\n")
+        tree_str = (truncated[:last_nl] if last_nl != -1 else truncated) + \
+                   f"\n... (truncated — {len(file_tree)} files total)"
+        logger.warning(
+            f"File tree truncated to {_MAX_TREE_CHARS} chars for test generation "
+            f"({len(file_tree)} files)"
+        )
+
     user_content = (
         f"Feature: {suggestion['name']}\n"
-        f"Framework: {framework}\n"
         f"Test cases to cover:\n"
         + "\n".join(f"- {tc}" for tc in suggestion.get("test_cases", []))
+        + f"\n\nRepository file tree ({len(file_tree)} files):\n{tree_str}"
     )
 
     result = await call_llm_structured(
@@ -211,11 +295,14 @@ def _resolve_claude_cmd() -> list[str]:
     return ["claude"]
 
 
-def _get_claude_live_log_path() -> Path:
-    """Path to the live log file. Tail this in a separate terminal to watch Claude."""
+def _get_claude_live_log_path(run_id: str) -> Path:
+    """Path to the per-run live log file. Tail this in a separate terminal to watch Claude.
+
+    Uses the first 8 chars of run_id to avoid clobbering between concurrent runs.
+    """
     base = Path(settings.sandbox_base_dir).resolve()
     base.mkdir(parents=True, exist_ok=True)
-    return base / "claude_live.log"
+    return base / f"claude_live_{run_id[:8]}.log"
 
 
 def _parse_stream_json_line(raw_line: str) -> str | None:
@@ -314,7 +401,7 @@ def _run_claude_sync(
 
     Returns (returncode, stdout, stderr).
     """
-    log_path = _get_claude_live_log_path()
+    log_path = _get_claude_live_log_path(run_id)
     full_stdout: list[str] = []
     full_stderr: list[str] = []
     file_lock = threading.Lock()
@@ -409,7 +496,7 @@ async def _invoke_claude_code(
     ]
     env = os.environ.copy()
     timeout = settings.claude_code_timeout
-    log_path = _get_claude_live_log_path()
+    log_path = _get_claude_live_log_path(run_id)
     logger.info(f"Claude Code live log: {log_path}")
     _log(run_id, "build", f"Live log: {log_path}", level="info")
 
@@ -503,24 +590,54 @@ async def _run_command(
 
 async def _run_verification(
     sandbox_path: str,
+    language: str,
     scripts: dict[str, str],
-) -> bool:
-    """Run npm test/lint/typecheck if they exist. Returns True if all pass."""
-    checks = ["test", "lint", "typecheck"]
+) -> tuple[bool, str]:
+    """Run the appropriate test suite for the project language.
 
-    for check in checks:
+    Returns (passed, error_output). error_output is non-empty on failure
+    and contains the actual test/lint output so it can be fed back to Claude.
+    """
+    root = Path(sandbox_path)
+
+    if language == "python":
+        exit_code, stdout, stderr = await _run_command(
+            "python -m pytest --tb=short -q", cwd=sandbox_path
+        )
+        if exit_code != 0:
+            return False, (stdout + stderr).strip()
+        return True, ""
+
+    if language == "java":
+        # Prefer wrapper scripts (committed to repo) over global installs
+        if (root / "mvnw").exists():
+            cmd = "./mvnw test -q"
+        elif (root / "pom.xml").exists():
+            cmd = "mvn test -q"
+        elif (root / "gradlew").exists():
+            cmd = "./gradlew test"
+        else:
+            cmd = "gradle test"
+        exit_code, stdout, stderr = await _run_command(cmd, cwd=sandbox_path)
+        if exit_code != 0:
+            return False, (stdout + stderr).strip()
+        return True, ""
+
+    # JavaScript / TypeScript — npm scripts
+    errors: list[str] = []
+    for check in ["test", "lint", "typecheck"]:
         if check not in scripts:
             continue
-
         exit_code, stdout, stderr = await _run_command(
             f"npm run {check}", cwd=sandbox_path
         )
-
         if exit_code != 0:
+            errors.append(f"`npm run {check}` failed:\n{stderr[:1000]}")
             logger.warning(f"Verification '{check}' failed: {stderr[:500]}")
-            return False
 
-    return True
+    if errors:
+        return False, "\n\n".join(errors)
+    return True, ""
 
 
 # ---------------------------------------------------------------------------
@@ -588,15 +705,6 @@ async def execute_plan_phase(execution_run_id: str) -> None:
         run_suffix = execution_run_id.replace("-", "")[:8]
         branch_name = f"pee/feature-{feature_slug}-{run_suffix}"
 
-        # Try to get the digest for context
-        digest = None
-        try:
-            run_result = db.table("analysis_runs").select("digest_json").eq("repo_id", repo["id"]).eq("status", "completed").order("completed_at", desc=True).limit(1).execute()
-            if run_result.data:
-                digest = run_result.data[0].get("digest_json")
-        except Exception:
-            pass
-
         # ---- Step 1: Clone into sandbox ----
         _update_status(execution_run_id, "cloning")
         _log(execution_run_id, "clone", f"Cloning {github_url} into sandbox")
@@ -611,34 +719,45 @@ async def execute_plan_phase(execution_run_id: str) -> None:
         _update_status(execution_run_id, "cloning", branch_name=branch_name)
         _log(execution_run_id, "clone", f"Created branch {branch_name}")
 
-        # ---- Step 2: Generate plan + tests ----
-        _update_status(execution_run_id, "planning")
-        _log(execution_run_id, "plan", "Generating implementation plan via OpenAI")
+        # Walk the live sandbox — ground truth for language/framework detection
+        file_tree = _walk_sandbox_tree(sandbox_path)
+        _log(execution_run_id, "plan", f"Scanned {len(file_tree)} files in sandbox")
 
-        plan = await _generate_plan(suggestion, digest)
+        # ---- Step 2: Generate plan + tests (single OpenAI call) ----
+        _update_status(execution_run_id, "planning")
+        _log(execution_run_id, "plan", "Generating implementation plan and tests via OpenAI")
+
+        plan_result = await _generate_plan(suggestion, file_tree)
+        plan = plan_result.plan
+        test_code = plan_result.test_code or ""
 
         # Write Plan.md to sandbox
         plan_path = Path(sandbox_path) / "Plan.md"
         plan_path.write_text(plan, encoding="utf-8")
         _log(execution_run_id, "plan", "Plan.md written to sandbox")
 
-        # Generate and write test file
+        # Detect language and write test file
         _update_status(execution_run_id, "testing")
-        _log(execution_run_id, "tests", "Generating test file via OpenAI")
-
-        test_code = await _generate_test_file(suggestion, digest=digest)
-        # Derive test path from framework so Python gets pytest, JS gets Jest
-        framework = ((digest.get("framework") or "") if digest else "").lower()
-        is_python = any(f in framework for f in ("fastapi", "django", "flask")) or \
-                    any(k in (digest.get("dependencies", {}) if digest else {})
-                        for k in ("fastapi", "django", "flask", "pytest"))
-        if is_python:
-            test_path = Path(sandbox_path) / f"tests/test_{feature_slug}.py"
-        else:
-            test_path = Path(sandbox_path) / f"__tests__/{feature_slug}.test.ts"
+        language = _detect_feature_language(
+            suggestion.get("impacted_files", []), file_tree
+        )
+        test_path = Path(sandbox_path) / _test_file_ref(language, feature_slug)
         test_path.parent.mkdir(parents=True, exist_ok=True)
-        test_path.write_text(test_code, encoding="utf-8")
-        _log(execution_run_id, "tests", f"Test file written: {test_path.name}")
+
+        if not test_code.strip():
+            logger.warning(
+                f"OpenAI returned empty test_code for run {execution_run_id} ({language}). "
+                "Skipping test file write."
+            )
+            _log(
+                execution_run_id, "tests",
+                f"Warning: no test code was generated [{language}]. "
+                "Claude Code will be asked to write tests during build.",
+                level="warn",
+            )
+        else:
+            test_path.write_text(test_code, encoding="utf-8")
+            _log(execution_run_id, "tests", f"Test file written: {test_path.name} [{language}]")
 
         # ---- Save plan and wait for approval ----
         _update_status(execution_run_id, "awaiting_approval", plan_md=plan)
@@ -682,6 +801,11 @@ async def execute_build_phase(execution_run_id: str) -> None:
         github_url = repo["github_url"]
         feature_slug = _slugify(suggestion["name"])
 
+        if not sandbox_path or not Path(sandbox_path).exists():
+            _update_status(execution_run_id, "failed")
+            _log(execution_run_id, "error", "Sandbox path is missing or no longer exists. Cannot build.", level="error")
+            return
+
         # Get digest for scripts info
         digest = None
         try:
@@ -693,20 +817,18 @@ async def execute_build_phase(execution_run_id: str) -> None:
 
         scripts = digest.get("scripts", {}) if digest else {}
 
-        # Derive test path to tell Claude where the tests are
-        framework = ((digest.get("framework") or "") if digest else "").lower()
-        is_python = any(f in framework for f in ("fastapi", "django", "flask")) or \
-                    any(k in (digest.get("dependencies", {}) if digest else {})
-                        for k in ("fastapi", "django", "flask", "pytest"))
-        if is_python:
-            test_file_ref = f"tests/test_{feature_slug}.py"
-        else:
-            test_file_ref = f"__tests__/{feature_slug}.test.ts"
+        # Derive test path from the live sandbox — feature-scoped language detection
+        file_tree = _walk_sandbox_tree(sandbox_path)
+        language = _detect_feature_language(
+            suggestion.get("impacted_files", []), file_tree
+        )
+        test_file_ref = _test_file_ref(language, feature_slug)
 
         # ---- Build + verify loop ----
         max_iterations = settings.max_fix_iterations
         iteration = 0
         success = False
+        last_verify_error = ""
 
         while iteration <= max_iterations:
             _update_status(execution_run_id, "building", iteration_count=iteration)
@@ -724,7 +846,8 @@ async def execute_build_phase(execution_run_id: str) -> None:
                     f"The previous implementation attempt failed verification. "
                     f"Fix the issues and ensure all tests pass. "
                     f"Review Plan.md for the original requirements. "
-                    f"Do not modify .env, CI configs, or deployment configs."
+                    f"Do not modify .env, CI configs, or deployment configs.\n\n"
+                    f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
 
             _log(execution_run_id, "build", f"Invoking Claude Code (iteration {iteration})")
@@ -737,14 +860,15 @@ async def execute_build_phase(execution_run_id: str) -> None:
             _update_status(execution_run_id, "verifying")
             _log(execution_run_id, "verify", f"Running verification (iteration {iteration})")
 
-            verified = await _run_verification(sandbox_path, scripts)
+            verified, verify_error = await _run_verification(sandbox_path, language, scripts)
 
             if verified:
                 _log(execution_run_id, "verify", "All checks passed!")
                 success = True
                 break
             else:
-                _log(execution_run_id, "verify", f"Verification failed (iteration {iteration})", level="warn")
+                last_verify_error = verify_error
+                _log(execution_run_id, "verify", f"Verification failed (iteration {iteration}):\n{verify_error[:500]}", level="warn")
                 iteration += 1
 
         if not success:
@@ -841,20 +965,32 @@ async def retry_build_phase(execution_run_id: str) -> None:
 
         scripts = digest.get("scripts", {}) if digest else {}
 
-        # Derive test path from framework
-        framework = ((digest.get("framework") or "") if digest else "").lower()
-        is_python = any(f in framework for f in ("fastapi", "django", "flask")) or \
-                    any(k in (digest.get("dependencies", {}) if digest else {})
-                        for k in ("fastapi", "django", "flask", "pytest"))
-        test_file_ref = f"tests/test_{feature_slug}.py" if is_python else f"__tests__/{feature_slug}.test.ts"
+        # Derive test path from the live sandbox — feature-scoped language detection
+        file_tree = _walk_sandbox_tree(sandbox_path)
+        language = _detect_feature_language(
+            suggestion.get("impacted_files", []), file_tree
+        )
+        test_file_ref = _test_file_ref(language, feature_slug)
 
-        # Regenerate test file — the previous attempt may have had a wrong framework
-        _log(execution_run_id, "tests", "Regenerating test file with corrected framework detection")
-        test_code = await _generate_test_file(suggestion, digest=digest)
+        # Remove stale test files at all possible paths so Claude Code isn't
+        # confused by a leftover wrong-language test from a previous attempt
+        all_possible = [
+            Path(sandbox_path) / f"tests/test_{feature_slug}.py",
+            Path(sandbox_path) / f"__tests__/{feature_slug}.test.ts",
+            Path(sandbox_path) / f"src/test/java/Test{_slugify_pascal(feature_slug)}.java",
+        ]
+        for stale in all_possible:
+            if stale != Path(sandbox_path) / test_file_ref and stale.exists():
+                stale.unlink()
+                _log(execution_run_id, "tests", f"Removed stale test file: {stale.name}")
+
+        # Regenerate test file from live sandbox tree
+        _log(execution_run_id, "tests", "Regenerating test file from live repo structure")
+        test_code = await _generate_test_file(suggestion, file_tree)
         test_path = Path(sandbox_path) / test_file_ref
         test_path.parent.mkdir(parents=True, exist_ok=True)
         test_path.write_text(test_code, encoding="utf-8")
-        _log(execution_run_id, "tests", f"Test file regenerated: {test_path.name}")
+        _log(execution_run_id, "tests", f"Test file regenerated: {test_path.name} [{language}]")
 
         # Build with error context
         _update_status(execution_run_id, "building", iteration_count=0)
@@ -876,6 +1012,7 @@ async def retry_build_phase(execution_run_id: str) -> None:
         max_iterations = settings.max_fix_iterations
         iteration = 0
         success = False
+        last_verify_error = ""
 
         while iteration <= max_iterations:
             _update_status(execution_run_id, "building", iteration_count=iteration)
@@ -889,21 +1026,23 @@ async def retry_build_phase(execution_run_id: str) -> None:
             _update_status(execution_run_id, "verifying")
             _log(execution_run_id, "verify", f"Running verification (iteration {iteration})")
 
-            verified = await _run_verification(sandbox_path, scripts)
+            verified, verify_error = await _run_verification(sandbox_path, language, scripts)
 
             if verified:
                 _log(execution_run_id, "verify", "All checks passed!")
                 success = True
                 break
             else:
-                _log(execution_run_id, "verify", f"Verification failed (iteration {iteration})", level="warn")
+                last_verify_error = verify_error
+                _log(execution_run_id, "verify", f"Verification failed (iteration {iteration}):\n{verify_error[:500]}", level="warn")
                 iteration += 1
-                # Update prompt for next iteration
+                # Update prompt with actual failure output for next iteration
                 prompt = (
                     f"The previous implementation attempt failed verification. "
                     f"Fix the issues and ensure all tests pass. "
                     f"Review Plan.md for the original requirements. "
-                    f"Do not modify .env, CI configs, or deployment configs."
+                    f"Do not modify .env, CI configs, or deployment configs.\n\n"
+                    f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
 
         if not success:
@@ -948,3 +1087,50 @@ async def abandon_execution(execution_run_id: str) -> None:
 
     _update_status(execution_run_id, "failed")
     _log(execution_run_id, "done", "Execution abandoned by user.")
+
+
+# ---------------------------------------------------------------------------
+# Startup: recover stuck runs
+# ---------------------------------------------------------------------------
+
+
+async def cleanup_stale_runs() -> None:
+    """Mark runs stuck in transient states as failed on server startup.
+
+    When the server restarts, any background task that was in-flight is gone.
+    Runs left in non-terminal states (queued, cloning, etc.) would be stuck
+    forever in the UI. This function marks them failed so users can retry.
+    """
+    _TRANSIENT_STATUSES = [
+        "queued", "cloning", "planning", "testing",
+        "building", "verifying", "pushing",
+    ]
+    try:
+        db = get_supabase()
+        result = (
+            db.table("execution_runs")
+            .select("id, status")
+            .in_("status", _TRANSIENT_STATUSES)
+            .execute()
+        )
+        stale = result.data or []
+        if not stale:
+            return
+        for run in stale:
+            logger.warning(
+                f"Recovering stale execution run {run['id']} "
+                f"(was stuck in '{run['status']}')"
+            )
+            db.table("execution_runs").update({"status": "failed"}).eq("id", run["id"]).execute()
+            db.table("execution_logs").insert({
+                "execution_run_id": run["id"],
+                "step": "startup",
+                "message": (
+                    f"Run recovered on server restart — was stuck in '{run['status']}'. "
+                    "You can retry or abandon this run."
+                ),
+                "log_level": "warn",
+            }).execute()
+        logger.info(f"Recovered {len(stale)} stale execution run(s) on startup.")
+    except Exception:
+        logger.exception("Failed to clean up stale execution runs on startup")
