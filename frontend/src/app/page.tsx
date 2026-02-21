@@ -5,6 +5,7 @@ import { RepoInput } from "@/components/modals/RepoInput";
 import { FeatureGraphView } from "@/components/graph/FeatureGraphView";
 import { SuggestionPanel } from "@/components/panels/SuggestionPanel";
 import { AddFeatureFlow } from "@/components/modals/AddFeatureFlow";
+import { PlanPanel } from "@/components/panels/PlanPanel";
 import { getRepo } from "@/services/api";
 import type { Repo, FeatureSuggestion } from "@/types";
 
@@ -148,13 +149,7 @@ export default function Home() {
             )}
           </>
         ) : (
-          /* Plan tab — placeholder until PlanPanel is implemented */
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center space-y-2">
-              <p className="text-muted-foreground font-medium">Plan</p>
-              <p className="text-xs text-muted-foreground">Coming soon</p>
-            </div>
-          </div>
+          <PlanPanel repoId={repo.id} />
         )}
       </div>
 
