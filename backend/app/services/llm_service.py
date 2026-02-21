@@ -1,8 +1,17 @@
+import asyncio
 import json
+import logging
+
 import httpx
+import openai
 from openai import AsyncOpenAI
 from pydantic import BaseModel, ValidationError
 from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+# Backoff delays (seconds) for transient API errors
+_BACKOFF = [1, 3, 8]
 
 
 def _make_client(api_key: str | None = None) -> AsyncOpenAI:
@@ -19,6 +28,16 @@ def _make_client(api_key: str | None = None) -> AsyncOpenAI:
     return AsyncOpenAI(api_key=key, http_client=httpx.AsyncClient())
 
 
+def _is_transient(exc: Exception) -> bool:
+    """Return True for errors that are safe to retry (rate limits, network, 5xx)."""
+    return isinstance(exc, (
+        openai.RateLimitError,
+        openai.APIConnectionError,
+        openai.APITimeoutError,
+        openai.InternalServerError,
+    ))
+
+
 async def call_llm_structured(
     system_prompt: str,
     user_prompt: str,
@@ -28,20 +47,31 @@ async def call_llm_structured(
 ) -> BaseModel:
     """Call OpenAI with JSON mode and validate against a Pydantic model.
 
-    Retries up to max_retries times on malformed output.
+    Retries on:
+      - Malformed/invalid JSON output (up to max_retries)
+      - Transient API errors — rate limits, network failures, 5xx (with backoff)
     """
     client = _make_client(api_key)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
     for attempt in range(max_retries + 1):
-        response = await client.chat.completions.create(
-            model=settings.openai_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.7,
-        )
+        try:
+            response = await client.chat.completions.create(
+                model=settings.openai_model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.7,
+            )
+        except Exception as exc:
+            if _is_transient(exc) and attempt < max_retries:
+                delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
+                logger.warning(f"OpenAI transient error ({type(exc).__name__}), retrying in {delay}s...")
+                await asyncio.sleep(delay)
+                continue
+            raise
 
         raw = response.choices[0].message.content
         try:
@@ -68,19 +98,29 @@ async def call_llm_structured_list(
     """Call OpenAI expecting a JSON object with a list under `list_key`.
 
     Each item is validated against item_model.
+    Retries on transient API errors with backoff, and on malformed output.
     """
     client = _make_client(api_key)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
 
     for attempt in range(max_retries + 1):
-        response = await client.chat.completions.create(
-            model=settings.openai_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.7,
-        )
+        try:
+            response = await client.chat.completions.create(
+                model=settings.openai_model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                temperature=0.7,
+            )
+        except Exception as exc:
+            if _is_transient(exc) and attempt < max_retries:
+                delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
+                logger.warning(f"OpenAI transient error ({type(exc).__name__}), retrying in {delay}s...")
+                await asyncio.sleep(delay)
+                continue
+            raise
 
         raw = response.choices[0].message.content
         try:
