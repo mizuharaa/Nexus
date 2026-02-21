@@ -11,7 +11,7 @@ import {
   type Node,
   type Edge,
 } from "@xyflow/react";
-import { getFeatureGraph, getSuggestions, updateFeatureNode } from "@/services/api";
+import { getFeatureGraph, getSuggestions, updateFeatureNode, undoGraph, canUndo } from "@/services/api";
 import { FeatureGraphNode } from "./FeatureGraphNode";
 import type { FeatureNode, FeatureEdge, FeatureSuggestion } from "@/types";
 
@@ -154,6 +154,8 @@ export function FeatureGraphView({
   const [graphError, setGraphError] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+  const [undoAvailable, setUndoAvailable] = useState(false);
+  const [undoing, setUndoing] = useState(false);
 
   const handleToggleCollapse = useCallback((nodeId: string) => {
     setCollapsedNodes((prev) => {
@@ -174,6 +176,7 @@ export function FeatureGraphView({
       setRawFeatures((prev) =>
         prev.map((f) => (f.id === nodeId ? { ...f, name, description } : f))
       );
+      setUndoAvailable(true);
       // If this node is selected, refresh suggestions
       if (selectedNodeId === nodeId) {
         setSuggestions([]);
@@ -191,6 +194,22 @@ export function FeatureGraphView({
     },
     [selectedNodeId, setSuggestions, setLoadingSuggestions, onSuggestionsLoaded]
   );
+
+  const handleUndo = useCallback(async () => {
+    setUndoing(true);
+    try {
+      const graph = await undoGraph(repoId);
+      setRawFeatures(graph.nodes);
+      setRawEdges(graph.edges);
+      const stillCanUndo = await canUndo(repoId);
+      setUndoAvailable(stillCanUndo);
+    } catch {
+      // nothing to undo
+      setUndoAvailable(false);
+    } finally {
+      setUndoing(false);
+    }
+  }, [repoId]);
 
   // Fetch graph data on mount
   useEffect(() => {
@@ -216,6 +235,9 @@ export function FeatureGraphView({
           if (count > 5) initialCollapsed.add(id);
         }
         setCollapsedNodes(initialCollapsed);
+
+        const available = await canUndo(repoId);
+        setUndoAvailable(available);
       } catch (err) {
         setGraphError(err instanceof Error ? err.message : "Failed to load graph");
         setRawFeatures([]);
@@ -354,6 +376,15 @@ export function FeatureGraphView({
           )}
         </div>
 
+        {undoAvailable && (
+          <button
+            onClick={handleUndo}
+            disabled={undoing}
+            className="pointer-events-auto rounded-lg bg-card/80 backdrop-blur-sm border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          >
+            {undoing ? "Undoing…" : "↩ Undo"}
+          </button>
+        )}
       </div>
 
       {/* Notification when generating (panel closed) */}

@@ -85,6 +85,15 @@ export async function updateFeatureNode(
   });
 }
 
+export async function undoGraph(repoId: string): Promise<FeatureGraph> {
+  return fetchJSON<FeatureGraph>(`/api/repos/${repoId}/undo`, { method: "POST" });
+}
+
+export async function canUndo(repoId: string): Promise<boolean> {
+  const res = await fetchJSON<{ can_undo: boolean }>(`/api/repos/${repoId}/undo/available`);
+  return res.can_undo;
+}
+
 // ---- Execution ----
 
 export async function buildFeature(

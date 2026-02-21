@@ -69,6 +69,46 @@ async def get_repo(repo_id: str):
     return result.data[0]
 
 
+@router.post("/{repo_id}/undo", response_model=FeatureGraphResponse)
+async def undo_graph(repo_id: str):
+    """Restore the previous graph snapshot (undo last graph mutation)."""
+    from app.services.graph_version_service import pop_snapshot
+    from app.services.graph_cache import invalidate_graph_cache
+
+    db = get_supabase()
+
+    snapshot = pop_snapshot(repo_id)
+    if snapshot is None:
+        raise HTTPException(status_code=404, detail="No snapshots to undo")
+
+    nodes = snapshot.get("nodes", [])
+    edges = snapshot.get("edges", [])
+
+    if not nodes:
+        raise HTTPException(status_code=400, detail="Snapshot is empty")
+
+    analysis_run_id = nodes[0]["analysis_run_id"]
+
+    # Replace current nodes and edges for this analysis run
+    db.table("feature_nodes").delete().eq("analysis_run_id", analysis_run_id).execute()
+    db.table("feature_edges").delete().eq("analysis_run_id", analysis_run_id).execute()
+
+    if nodes:
+        db.table("feature_nodes").insert(nodes).execute()
+    if edges:
+        db.table("feature_edges").insert(edges).execute()
+
+    invalidate_graph_cache(repo_id)
+    return {"nodes": nodes, "edges": [e for e in edges if e.get("edge_type") == "tree"]}
+
+
+@router.get("/{repo_id}/undo/available")
+async def undo_available(repo_id: str):
+    """Return whether any undo snapshots exist for a repo."""
+    from app.services.graph_version_service import has_snapshots
+    return {"can_undo": has_snapshots(repo_id)}
+
+
 @router.get("/{repo_id}/features", response_model=FeatureGraphResponse)
 async def get_features(repo_id: str):
     """Get full feature graph (nodes + edges) for a repo. Uses in-memory cache when available."""
