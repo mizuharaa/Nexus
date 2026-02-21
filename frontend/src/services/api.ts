@@ -125,6 +125,40 @@ export async function fixGraph(
   });
 }
 
+// ---- Plan ----
+
+export interface PlanMessage {
+  id: string;
+  conversation_id: string;
+  role: "user" | "assistant";
+  content: string;
+  suggested_goals: string[];
+  related_feature_ids: string[];
+  related_features?: { id: string; name: string; description: string }[];
+  created_at: string;
+}
+
+export async function getPlanConversation(repoId: string): Promise<{
+  conversation_id: string;
+  messages: PlanMessage[];
+}> {
+  return fetchJSON(`/api/repos/${repoId}/plan/conversation`);
+}
+
+export async function sendPlanMessage(
+  repoId: string,
+  message: string
+): Promise<PlanMessage> {
+  return fetchJSON(`/api/repos/${repoId}/plan/messages`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
+export async function startNewPlan(repoId: string): Promise<{ conversation_id: string; messages: PlanMessage[] }> {
+  return fetchJSON(`/api/repos/${repoId}/plan/new`, { method: "POST" });
+}
+
 // ---- Execution ----
 
 export async function buildFeature(
