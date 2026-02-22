@@ -11,41 +11,130 @@
 
 /* Premium Logo */
 .nexus-logo-premium {
-  font-family: 'Sora', sans-serif;
-  font-size: 28px;
-  font-weight: 900;
-  letter-spacing: 0.22em;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   text-decoration: none;
-  background: linear-gradient(135deg, #a78bfa 0%, #c084fc 40%, #e879f9 100%);
+  background: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 35%, #8b5cf6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative;
-  padding-left: 18px;
+  padding-left: 0;
+  transition: opacity 0.2s ease;
 }
 
-.nexus-logo-premium::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 15%;
-  bottom: 15%;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #a78bfa, #e879f9);
+.nexus-logo-premium:hover {
+  opacity: 0.85;
 }
 
-.nexus-logo-premium::after {
-  content: '';
+/* ── Navbar Links ── */
+
+.nexus-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nexus-nav-link:hover {
+  background: rgba(139, 92, 246, 0.08);
+  color: #a78bfa !important;
+}
+
+/* ── Features Dropdown ── */
+
+.nexus-dropdown {
   position: absolute;
-  left: 6px;
-  top: 25%;
-  bottom: 25%;
-  width: 2px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #a78bfa, #c084fc);
-  opacity: 0.4;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: 6px;
+  border-radius: 12px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255,255,255,0.04);
+  z-index: 60;
+}
+
+.nexus-dropdown-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.nexus-dropdown-item:hover {
+  background: rgba(139, 92, 246, 0.08);
+}
+
+.nexus-dropdown-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(139, 92, 246, 0.1);
+  margin-top: 1px;
+}
+
+.nexus-dropdown-label {
+  display: block;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.nexus-dropdown-desc {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* ── Nav CTA Button ── */
+
+.nexus-nav-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+}
+
+.nexus-nav-cta:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
 }
 
 /* Headline Block - Safe Width */
@@ -359,24 +448,46 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Globe Section - Large and Visible */
+/* Globe Section */
 .nexus-globe-section {
   width: 100%;
-  min-height: 700px;
+  min-height: 640px;
   position: relative;
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: 64px;
+  gap: 48px;
   align-items: center;
-  padding: 0 64px;
+  padding: 0 48px;
   max-width: 1440px;
   margin: 0 auto;
 }
 
 .nexus-globe-visual {
   width: 100%;
-  height: 600px;
+  height: 560px;
   position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.nexus-globe-hint {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(167, 139, 250, 0.5);
+  pointer-events: none;
+  animation: globeHintFade 3s ease forwards;
+}
+
+@keyframes globeHintFade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .nexus-globe-stats-block {
@@ -384,20 +495,22 @@
 }
 
 .nexus-globe-title {
-  font-size: 48px;
-  font-weight: 900;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 44px;
+  font-weight: 800;
   line-height: 1.1;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
   color: white;
 }
 
 .nexus-globe-stat-item {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .nexus-globe-stat-value {
-  font-size: 56px;
-  font-weight: 900;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 48px;
+  font-weight: 800;
   line-height: 1;
   background: linear-gradient(135deg, #7B5CFF, #C14CFF, #FFB6D9);
   -webkit-background-clip: text;

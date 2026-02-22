@@ -1,7 +1,7 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { Link } from "react-router";
-import { motion, useScroll, useTransform } from "motion/react";
-import { ArrowRight, Github, Eye, Telescope, Terminal } from "lucide-react";
+import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
+import { ArrowRight, Github, Eye, Telescope, Terminal, ChevronDown, Zap, Shield, GitBranch, BarChart3 } from "lucide-react";
 import HeroPipelineAnimation from "../components/HeroPipelineAnimation";
 import GlobeVisualization from "../components/GlobeVisualization";
 import CompanyCarousel from "../components/CompanyCarousel";
@@ -72,6 +72,135 @@ const capabilities = [
     desc: "Pick a feature. Claude builds it in a sandbox. Tests run. Lint passes. A deploy-ready PR opens automatically.",
   },
 ];
+
+/* ═══════════════════════════════════════════
+   Navbar
+   ═══════════════════════════════════════════ */
+
+const FEATURE_ITEMS = [
+  { icon: Zap, label: "Auto-Fix Engine", desc: "Autonomous code repair pipeline", href: "#features" },
+  { icon: Shield, label: "Security Scanner", desc: "Detect & rotate leaked secrets", href: "#features" },
+  { icon: GitBranch, label: "Future Simulator", desc: "Explore 3 strategic code paths", href: "#features" },
+  { icon: BarChart3, label: "Analytics", desc: "Coverage, risk & performance insights", href: "#features" },
+];
+
+function NavBar({ isDark }: { isDark: boolean }) {
+  const [featuresOpen, setFeaturesOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const openDropdown = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setFeaturesOpen(true);
+  };
+  const closeDropdown = () => {
+    closeTimer.current = setTimeout(() => setFeaturesOpen(false), 150);
+  };
+
+  return (
+    <nav
+      className="fixed top-0 left-0 right-0 z-50"
+      style={{
+        height: "72px",
+        borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+        backdropFilter: "blur(24px) saturate(1.4)",
+        WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+        background: isDark ? "rgba(8,8,14,0.82)" : "rgba(252,252,254,0.88)",
+        transition: "background 0.4s ease",
+      }}
+    >
+      <div className="max-w-[1360px] mx-auto px-6 md:px-10 h-full flex items-center justify-between">
+        {/* Left — Logo */}
+        <Link to="/" className="nexus-logo-premium">
+          NEXUS
+        </Link>
+
+        {/* Center — Nav links */}
+        <div className="hidden md:flex items-center gap-1" style={{ fontFamily: "'Space Grotesk', 'Inter', sans-serif" }}>
+          {/* Features dropdown */}
+          <div
+            className="relative"
+            onMouseEnter={openDropdown}
+            onMouseLeave={closeDropdown}
+          >
+            <button
+              className="nexus-nav-link"
+              style={{ color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)" }}
+              onClick={() => setFeaturesOpen((v) => !v)}
+            >
+              Features
+              <ChevronDown
+                className="w-3.5 h-3.5 transition-transform"
+                style={{ transform: featuresOpen ? "rotate(180deg)" : "rotate(0)" }}
+              />
+            </button>
+
+            <AnimatePresence>
+              {featuresOpen && (
+                <motion.div
+                  className="nexus-dropdown"
+                  initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  style={{
+                    background: isDark ? "rgba(14,14,22,0.96)" : "rgba(255,255,255,0.97)",
+                    border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+                  }}
+                >
+                  {FEATURE_ITEMS.map((item) => (
+                    <Link
+                      key={item.label}
+                      to={item.href}
+                      className="nexus-dropdown-item"
+                      style={{ color: isDark ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.75)" }}
+                      onClick={() => setFeaturesOpen(false)}
+                    >
+                      <span
+                        className="nexus-dropdown-icon"
+                        style={{ color: isDark ? "#a78bfa" : "#7c3aed" }}
+                      >
+                        <item.icon className="w-4 h-4" />
+                      </span>
+                      <span>
+                        <span className="nexus-dropdown-label">{item.label}</span>
+                        <span
+                          className="nexus-dropdown-desc"
+                          style={{ color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.4)" }}
+                        >
+                          {item.desc}
+                        </span>
+                      </span>
+                    </Link>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {["Pricing", "Docs"].map((item) => (
+            <Link
+              key={item}
+              to={`#${item.toLowerCase()}`}
+              className="nexus-nav-link"
+              style={{ color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)" }}
+            >
+              {item}
+            </Link>
+          ))}
+        </div>
+
+        {/* Right — Actions */}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link to="/onboarding" className="nexus-nav-cta">
+            Get Started
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
 
 /* ═══════════════════════════════════════════
    Dashboard Window Mockup
@@ -387,57 +516,10 @@ export default function LandingPage() {
       />
 
       {/* ═══════════ NAVBAR ═══════════ */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50"
-        style={{
-          height: "88px",
-          borderBottom: `2px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-          backdropFilter: "blur(20px)",
-          background: isDark ? "rgba(11,11,18,0.85)" : "rgba(245,245,247,0.9)",
-          transition: "background 0.45s ease, border-color 0.45s ease",
-        }}
-      >
-        <div className="max-w-[95vw] mx-auto px-8 md:px-12 h-full flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="nexus-logo-premium">
-              NEXUS
-            </Link>
-            {/* LED Status Indicator */}
-            <div className="hidden md:flex items-center gap-1.5 pl-2">
-              <div
-                className="w-1.5 h-1.5 rounded-full bg-[#00D084] animate-pulse"
-                style={{ boxShadow: "0 0 6px rgba(0,208,132,0.6)" }}
-              />
-              <span
-                className="text-[9px] font-bold uppercase tracking-[0.12em]"
-                style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)" }}
-              >
-                Live
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-6 md:gap-8">
-            <ThemeToggle />
-            {["Features", "Pricing", "Docs"].map((item) => (
-              <Link
-                key={item}
-                to={`#${item.toLowerCase()}`}
-                className="hidden md:block text-xs font-bold uppercase tracking-[0.12em] transition-colors"
-                style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)" }}
-              >
-                {item}
-              </Link>
-            ))}
-            <Link to="/onboarding" className="nexus-btn nexus-btn-primary">
-              Get Started
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <NavBar isDark={isDark} />
 
       {/* ═══════════ HERO ═══════════ */}
-      <section className="relative pt-[120px] pb-[40px]" style={{ zIndex: 10 }}>
+      <section className="relative pt-[100px] pb-[40px]" style={{ zIndex: 10 }}>
         <motion.div
           style={{ y: heroY, opacity: heroOpacity, scale: heroScale }}
           className="nexus-hero-grid"
