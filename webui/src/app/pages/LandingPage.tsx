@@ -2,7 +2,7 @@ import React, { useRef } from "react";
 import { Link } from "react-router";
 import { motion, useScroll, useTransform } from "motion/react";
 import { ArrowRight, Github, Eye, Telescope, Terminal } from "lucide-react";
-import InteractiveNodeGraph from "../components/InteractiveNodeGraph";
+import HeroPipelineAnimation from "../components/HeroPipelineAnimation";
 import GlobeVisualization from "../components/GlobeVisualization";
 import CompanyCarousel from "../components/CompanyCarousel";
 import ThemeToggle from "../components/ThemeToggle";
@@ -494,7 +494,7 @@ export default function LandingPage() {
             className="min-w-0 overflow-hidden"
             style={{ zIndex: 1 }}
           >
-            <InteractiveNodeGraph />
+            <HeroPipelineAnimation />
           </motion.div>
         </motion.div>
       </section>

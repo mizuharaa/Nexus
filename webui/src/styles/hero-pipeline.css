@@ -1,0 +1,806 @@
+/* ═══════════════════════════════════════════
+   Hero Pipeline Animation
+   ═══════════════════════════════════════════ */
+
+.heroPipeline {
+  position: relative;
+  width: 100%;
+  height: 580px;
+  border-radius: 8px;
+  background: rgba(10, 10, 16, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+/* Subtle dot grid */
+.heroPipeline__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: radial-gradient(
+    circle,
+    rgba(167, 139, 250, 0.8) 1px,
+    transparent 1px
+  );
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+
+/* SVG layer */
+.heroPipeline__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Nodes ── */
+
+.heroPipeline__node {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  cursor: pointer;
+  transition: box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+/* ── Tier sizing ── */
+.heroPipeline__node.tier-primary {
+  width: 36px;
+  height: 36px;
+}
+
+.heroPipeline__node.tier-secondary {
+  width: 22px;
+  height: 22px;
+}
+
+.heroPipeline__node.tier-tertiary {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Inner core (radial gradient highlight) ── */
+.heroPipeline__nodeCore {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  transition: background 0.3s ease;
+}
+
+.heroPipeline__node.tier-primary .heroPipeline__nodeCore { inset: 5px; }
+.heroPipeline__node.tier-tertiary .heroPipeline__nodeCore { inset: 2px; }
+
+/* ── Outer ring stroke ── */
+.heroPipeline__nodeRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  pointer-events: none;
+}
+
+.heroPipeline__node.tier-primary .heroPipeline__nodeRing {
+  border-width: 1.5px;
+}
+
+/* ── Type: secrets (red/orange) ── */
+.heroPipeline__node.type-secrets .heroPipeline__nodeCore {
+  background: radial-gradient(circle at 35% 35%, #fca5a5, #ef4444 60%, #b91c1c);
+}
+.heroPipeline__node.type-secrets .heroPipeline__nodeRing {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+.heroPipeline__node.type-secrets:hover .heroPipeline__nodeRing,
+.heroPipeline__node.type-secrets.active .heroPipeline__nodeRing {
+  border-color: rgba(248, 113, 113, 0.7);
+  box-shadow: 0 0 16px rgba(248, 113, 113, 0.35);
+}
+
+/* ── Type: code (purple/blue) ── */
+.heroPipeline__node.type-code .heroPipeline__nodeCore {
+  background: radial-gradient(circle at 35% 35%, #c4b5fd, #8b5cf6 60%, #6d28d9);
+}
+.heroPipeline__node.type-code .heroPipeline__nodeRing {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+.heroPipeline__node.type-code:hover .heroPipeline__nodeRing,
+.heroPipeline__node.type-code.active .heroPipeline__nodeRing {
+  border-color: rgba(139, 92, 246, 0.65);
+  box-shadow: 0 0 14px rgba(139, 92, 246, 0.3);
+}
+
+/* ── Type: config (teal) ── */
+.heroPipeline__node.type-config .heroPipeline__nodeCore {
+  background: radial-gradient(circle at 35% 35%, #99f6e4, #14b8a6 60%, #0d9488);
+}
+.heroPipeline__node.type-config .heroPipeline__nodeRing {
+  border-color: rgba(20, 184, 166, 0.3);
+}
+.heroPipeline__node.type-config:hover .heroPipeline__nodeRing,
+.heroPipeline__node.type-config.active .heroPipeline__nodeRing {
+  border-color: rgba(20, 184, 166, 0.65);
+  box-shadow: 0 0 14px rgba(20, 184, 166, 0.3);
+}
+
+/* ── Type: deploy (gray) ── */
+.heroPipeline__node.type-deploy .heroPipeline__nodeCore {
+  background: radial-gradient(circle at 35% 35%, #d1d5db, #6b7280 60%, #4b5563);
+}
+.heroPipeline__node.type-deploy .heroPipeline__nodeRing {
+  border-color: rgba(107, 114, 128, 0.3);
+}
+.heroPipeline__node.type-deploy:hover .heroPipeline__nodeRing,
+.heroPipeline__node.type-deploy.active .heroPipeline__nodeRing {
+  border-color: rgba(107, 114, 128, 0.65);
+  box-shadow: 0 0 14px rgba(107, 114, 128, 0.3);
+}
+
+/* ── Resolved state (green for all) ── */
+.heroPipeline__node.resolved .heroPipeline__nodeCore {
+  background: radial-gradient(circle at 35% 35%, #86efac, #34d399 60%, #059669) !important;
+}
+.heroPipeline__node.resolved .heroPipeline__nodeRing {
+  border-color: rgba(52, 211, 153, 0.5) !important;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2) !important;
+}
+
+/* ── Primary node glow (always on for .env) ── */
+.heroPipeline__node.tier-primary:not(.resolved) {
+  filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.25));
+}
+
+/* ── Alert ring (primary secrets only) ── */
+.heroPipeline__alertRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(248, 113, 113, 0.5);
+  pointer-events: none;
+}
+
+/* ── Pulse ring ── */
+.heroPipeline__pulse {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  pointer-events: none;
+}
+
+.heroPipeline__node.type-secrets .heroPipeline__pulse {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+/* ── Badge icon ── */
+.heroPipeline__badgeWrap {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(10, 10, 16, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.heroPipeline__node.tier-primary .heroPipeline__badgeWrap {
+  width: 16px;
+  height: 16px;
+  bottom: -3px;
+  right: -3px;
+}
+
+.heroPipeline__node.tier-tertiary .heroPipeline__badgeWrap {
+  width: 10px;
+  height: 10px;
+  bottom: -2px;
+  right: -2px;
+}
+
+.heroPipeline__badge {
+  width: 8px;
+  height: 8px;
+  display: block;
+}
+
+.heroPipeline__node.tier-primary .heroPipeline__badge {
+  width: 10px;
+  height: 10px;
+}
+
+.heroPipeline__node.tier-tertiary .heroPipeline__badge {
+  width: 6px;
+  height: 6px;
+}
+
+.heroPipeline__node.type-secrets .heroPipeline__badge { color: #fca5a5; }
+.heroPipeline__node.type-code .heroPipeline__badge { color: #c4b5fd; }
+.heroPipeline__node.type-config .heroPipeline__badge { color: #99f6e4; }
+.heroPipeline__node.type-deploy .heroPipeline__badge { color: #9ca3af; }
+.heroPipeline__node.resolved .heroPipeline__badge { color: #86efac !important; }
+
+/* ── Tooltip (pill label) ── */
+
+.heroPipeline__tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  z-index: 30;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: rgba(12, 12, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  white-space: nowrap;
+}
+
+.heroPipeline__tooltip.type-secrets {
+  border-color: rgba(248, 113, 113, 0.2);
+}
+.heroPipeline__tooltip.type-code {
+  border-color: rgba(139, 92, 246, 0.2);
+}
+.heroPipeline__tooltip.type-config {
+  border-color: rgba(20, 184, 166, 0.2);
+}
+.heroPipeline__tooltip.type-deploy {
+  border-color: rgba(107, 114, 128, 0.2);
+}
+
+.heroPipeline__tooltipFile {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.heroPipeline__tooltipMeta {
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── Bubble ── */
+
+.heroPipeline__bubble {
+  position: absolute;
+  transform: translateY(-50%);
+  z-index: 25;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(12, 12, 18, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+}
+
+.heroPipeline__bubbleDot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #a78bfa;
+}
+
+.heroPipeline__bubbleText {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
+}
+
+/* ── Code panel ── */
+
+.heroPipeline__codePanel {
+  position: absolute;
+  right: 16px;
+  bottom: 48px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(340px, 50%);
+}
+
+.heroPipeline__codeBlock {
+  border-radius: 6px;
+  background: rgba(10, 10, 16, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.heroPipeline__codeBlock.diff {
+  border-color: rgba(167, 139, 250, 0.1);
+}
+
+.heroPipeline__codeHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.heroPipeline__codeDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.heroPipeline__codeTitle {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  margin-left: 4px;
+}
+
+.heroPipeline__codeBody {
+  padding: 10px 12px;
+  position: relative;
+}
+
+.heroPipeline__codeLine {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.heroPipeline__codeLine.add {
+  background: rgba(52, 211, 153, 0.06);
+  color: #34d399;
+}
+
+.heroPipeline__codeLine.del {
+  background: rgba(248, 113, 113, 0.06);
+  color: #f87171;
+  text-decoration: line-through;
+  text-decoration-color: rgba(248, 113, 113, 0.3);
+}
+
+.heroPipeline__lineNum {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: right;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.heroPipeline__codeLine.add .heroPipeline__lineNum {
+  color: rgba(52, 211, 153, 0.4);
+}
+
+.heroPipeline__codeLine.del .heroPipeline__lineNum {
+  color: rgba(248, 113, 113, 0.4);
+}
+
+.heroPipeline__lineText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroPipeline__cursor {
+  display: inline-block;
+  width: 6px;
+  height: 14px;
+  background: #a78bfa;
+  margin-left: 28px;
+  border-radius: 1px;
+  animation: heroCursorBlink 0.8s step-end infinite;
+}
+
+@keyframes heroCursorBlink {
+  50% { opacity: 0; }
+}
+
+/* ── Test runner ── */
+
+.heroPipeline__testRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 11px;
+  line-height: 2;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.heroPipeline__testIcon {
+  color: #34d399;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.heroPipeline__testName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heroPipeline__testMs {
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.heroPipeline__testSpinner {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid rgba(167, 139, 250, 0.3);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: heroSpin 0.7s linear infinite;
+  margin-top: 4px;
+}
+
+@keyframes heroSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Before / After slider ── */
+
+.heroPipeline__slider {
+  position: relative;
+  height: 220px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.heroPipeline__sliderSide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.heroPipeline__sliderSide.before {
+  left: 0;
+}
+
+.heroPipeline__sliderSide.after {
+  right: 0;
+}
+
+.heroPipeline__sliderContent {
+  padding: 12px 14px;
+  height: 100%;
+}
+
+.heroPipeline__sliderSide.before .heroPipeline__sliderContent {
+  background: rgba(40, 12, 12, 0.95);
+}
+
+.heroPipeline__sliderSide.after .heroPipeline__sliderContent {
+  background: rgba(10, 30, 18, 0.95);
+}
+
+.heroPipeline__sliderLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.heroPipeline__sliderCode {
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 10px;
+  line-height: 1.9;
+}
+
+.heroPipeline__sliderLine {
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.heroPipeline__sliderLine.del {
+  color: rgba(248, 113, 113, 0.7);
+}
+
+.heroPipeline__sliderLine.add {
+  color: rgba(52, 211, 153, 0.8);
+}
+
+.heroPipeline__sliderLine.dim {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.heroPipeline__sliderKey {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.heroPipeline__sliderSecret {
+  background: rgba(248, 113, 113, 0.15);
+  color: rgba(248, 113, 113, 0.85);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.heroPipeline__sliderSafe {
+  background: rgba(52, 211, 153, 0.12);
+  color: rgba(52, 211, 153, 0.85);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.heroPipeline__sliderWarn {
+  margin-top: 6px;
+  font-size: 9px;
+  color: rgba(248, 113, 113, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.heroPipeline__sliderOk {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: rgba(52, 211, 153, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.heroPipeline__sliderHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 10;
+  cursor: ew-resize;
+  transform: translateX(-50%);
+}
+
+.heroPipeline__sliderHandle::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+}
+
+/* ── Success panel ── */
+
+.heroPipeline__successPanel {
+  position: absolute;
+  right: 16px;
+  bottom: 48px;
+  z-index: 20;
+  width: min(300px, 50%);
+  padding: 16px;
+  border-radius: 6px;
+  background: rgba(10, 10, 16, 0.95);
+  border: 1px solid rgba(52, 211, 153, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.heroPipeline__checkItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.heroPipeline__checkIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.heroPipeline__prBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: opacity 0.2s;
+}
+
+.heroPipeline__prBtn:hover {
+  opacity: 0.85;
+}
+
+/* ── Scrub bar ── */
+
+.heroPipeline__scrubWrap {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heroPipeline__scrubTrack {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroPipeline__scrubFill {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #a78bfa, #c084fc);
+  transform-origin: left;
+}
+
+.heroPipeline__playBtn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.heroPipeline__playBtn:hover {
+  border-color: rgba(167, 139, 250, 0.4);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Phase label ── */
+
+.heroPipeline__phaseLabel {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  z-index: 15;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Light mode ── */
+
+.nexus-light .heroPipeline {
+  background: rgba(250, 250, 255, 0.7);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.nexus-light .heroPipeline__grid {
+  background-image: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.4) 1px,
+    transparent 1px
+  );
+}
+
+.nexus-light .heroPipeline__label {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+.nexus-light .heroPipeline__tooltip,
+.nexus-light .heroPipeline__bubble,
+.nexus-light .heroPipeline__codeBlock,
+.nexus-light .heroPipeline__successPanel {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.nexus-light .heroPipeline__codeLine {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.nexus-light .heroPipeline__phaseLabel {
+  color: rgba(0, 0, 0, 0.25);
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 1024px) {
+  .heroPipeline {
+    height: 480px;
+  }
+
+  .heroPipeline__codePanel,
+  .heroPipeline__successPanel {
+    width: min(280px, 55%);
+    right: 10px;
+    bottom: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroPipeline {
+    height: 380px;
+  }
+
+  .heroPipeline__codePanel,
+  .heroPipeline__successPanel {
+    width: calc(100% - 20px);
+    left: 10px;
+    right: 10px;
+    bottom: 36px;
+  }
+
+  .heroPipeline__bubble {
+    max-width: 160px;
+    font-size: 10px;
+    padding: 8px 10px;
+  }
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .heroPipeline__cursor {
+    animation: none;
+  }
+
+  .heroPipeline__pulse,
+  .heroPipeline__alertRing {
+    display: none;
+  }
+
+  .heroPipeline__node.tier-primary:not(.resolved) {
+    filter: none;
+  }
+}
