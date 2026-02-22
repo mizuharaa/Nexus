@@ -13,7 +13,6 @@ import re
 import shutil
 import subprocess
 import sys
-import threading
 from pathlib import Path
 
 from app.config import settings
@@ -412,93 +411,59 @@ def _parse_stream_json_line(raw_line: str) -> str | None:
 def _run_claude_sync(
     cmd: list[str], cwd: str, env: dict, timeout: int, run_id: str
 ) -> tuple[int, str, str]:
-    """Run Claude Code CLI with live streaming to file.
+    """Run Claude Code CLI and capture output.
 
-    Parses stream-json output into human-readable text.
-    Streams parsed output to sandboxes/claude_live.log in real-time
-    and inserts log entries into the database as they arrive.
+    Uses subprocess.run (sync via thread) instead of Popen+threads.
+    On Windows, Node.js buffers stdout to pipes and doesn't flush until
+    process exit anyway, so async thread-based capture offers no advantage
+    over sync capture. sync is simpler and more reliable.
+
+    Parses stream-json output and writes to live log file.
 
     Run `tail -f backend/sandboxes/claude_live.log` in a separate terminal
-    to watch Claude work.
+    to monitor progress.
 
     Returns (returncode, stdout, stderr).
     """
     log_path = _get_claude_live_log_path(run_id)
-    full_stdout: list[str] = []
-    full_stderr: list[str] = []
-    file_lock = threading.Lock()
 
-    def read_stdout(pipe) -> None:
-        """Read stdout, parse stream-json, write readable output to log file.
-
-        On Windows, Node.js buffers stdout to the pipe (non-TTY mode) and only
-        flushes when the buffer fills (~64 KB) or the process exits. Real-time
-        DB inserts from this thread would never fire during execution.
-        DB inserts are therefore done in a batch after the process exits —
-        see _invoke_claude_code. We still write to the log file here so
-        `tail -f claude_live_*.log` shows output as soon as it arrives.
-        """
-        try:
-            for line in iter(pipe.readline, b""):
-                raw = line.decode("utf-8", errors="replace")
-                full_stdout.append(raw)
-                parsed = _parse_stream_json_line(raw)
-                if parsed:
-                    with file_lock:
-                        with open(log_path, "a", encoding="utf-8") as f:
-                            f.write(parsed + "\n")
-        except Exception:
-            pass
-        finally:
-            pipe.close()
-
-    def read_stderr(pipe) -> None:
-        """Read stderr and write to log file."""
-        try:
-            for line in iter(pipe.readline, b""):
-                text = line.decode("utf-8", errors="replace").strip()
-                if text:
-                    full_stderr.append(text)
-                    with file_lock:
-                        with open(log_path, "a", encoding="utf-8") as f:
-                            f.write(f"[stderr] {text}\n")
-        except Exception:
-            pass
-        finally:
-            pipe.close()
-
-    # Clear and write header at start
+    # Clear and write header
     with open(log_path, "w", encoding="utf-8") as f:
         f.write(f"=== Claude Code run {run_id} ===\n\n")
 
-    proc = subprocess.Popen(
-        cmd,
-        cwd=cwd,
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdin=subprocess.DEVNULL,
-    )
-
-    t1 = threading.Thread(target=read_stdout, args=(proc.stdout,))
-    t2 = threading.Thread(target=read_stderr, args=(proc.stderr,))
-    t1.daemon = True
-    t2.daemon = True
-    t1.start()
-    t2.start()
-
     try:
-        returncode = proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
-        raise
-    finally:
-        t1.join(timeout=5)
-        t2.join(timeout=5)
+        result = subprocess.run(
+            cmd,
+            cwd=cwd,
+            env=env,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+        returncode = result.returncode
+        stdout_text = result.stdout
+        stderr_text = result.stderr
 
-    stdout_text = "".join(full_stdout)
-    stderr_text = "".join(full_stderr)
+    except subprocess.TimeoutExpired:
+        raise
+
+    # Write parsed logs to live log file for tail -f monitoring
+    if stdout_text:
+        for line in stdout_text.splitlines():
+            parsed = _parse_stream_json_line(line)
+            if parsed:
+                with open(log_path, "a", encoding="utf-8") as f:
+                    f.write(parsed + "\n")
+
+    if stderr_text:
+        for line in stderr_text.splitlines():
+            text = line.strip()
+            if text:
+                with open(log_path, "a", encoding="utf-8") as f:
+                    f.write(f"[stderr] {text}\n")
+
     return returncode, stdout_text, stderr_text
 
 
