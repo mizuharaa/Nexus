@@ -390,16 +390,13 @@ function NavBar({ isDark }: { isDark: boolean }) {
             </AnimatePresence>
           </div>
 
-          {["Pricing", "Docs"].map((item) => (
-            <Link
-              key={item}
-              to={`#${item.toLowerCase()}`}
+                    <Link
+              to="/dashboard"
               className="nexus-nav-link"
               style={{ color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)" }}
             >
-              {item}
+              Dashboard
             </Link>
-          ))}
         </div>
 
         {/* Right — Actions */}
