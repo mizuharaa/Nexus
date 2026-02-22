@@ -59,6 +59,51 @@ async def analyze_repo(
     return repo
 
 
+@router.get("/{repo_id}/suggestion-criteria")
+async def get_suggestion_criteria(repo_id: str):
+    """Get current suggestion criteria for the repo."""
+    from app.services.suggestion_service import get_criteria_for_repo
+
+    db = get_supabase()
+    result = db.table("repos").select("id").eq("id", repo_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Repo not found")
+    return {"criteria": get_criteria_for_repo(repo_id)}
+
+
+@router.post("/{repo_id}/suggestion-criteria")
+async def save_suggestion_criteria(repo_id: str, body: dict):
+    """Save suggestion criteria and clear all existing suggestions for the repo.
+    Body: { criteria: { criterion1: "...", criterion2: "...", ... } }
+    """
+    from app.services.suggestion_service import set_criteria_for_repo
+
+    db = get_supabase()
+    result = db.table("repos").select("id").eq("id", repo_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Repo not found")
+
+    criteria = body.get("criteria") or {}
+    if not isinstance(criteria, dict):
+        criteria = {}
+
+    set_criteria_for_repo(repo_id, criteria)
+
+    # Clear all feature_suggestions for nodes in this repo
+    run_id = _get_active_run_id(db, repo_id)
+    nodes_result = (
+        db.table("feature_nodes")
+        .select("id")
+        .eq("analysis_run_id", run_id)
+        .execute()
+    )
+    node_ids = [n["id"] for n in (nodes_result.data or [])]
+    if node_ids:
+        db.table("feature_suggestions").delete().in_("feature_node_id", node_ids).execute()
+
+    return {"status": "ok", "message": "Criteria saved and suggestions cleared"}
+
+
 @router.get("/{repo_id}", response_model=RepoResponse)
 async def get_repo(repo_id: str):
     """Get repo details and status."""

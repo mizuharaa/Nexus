@@ -179,13 +179,21 @@ export async function startNewPlan(repoId: string): Promise<{ conversation_id: s
   return fetchJSON(`/api/repos/${repoId}/plan/new`, { method: "POST" });
 }
 
-// ---- Suggestions with Criteria ----
+// ---- Suggestion Criteria (Settings) ----
 
-export async function generateSuggestionsWithCriteria(
+export async function getSuggestionCriteria(repoId: string): Promise<Record<string, string>> {
+  const res = await fetchJSON<{ criteria: Record<string, string> }>(
+    `/api/repos/${repoId}/suggestion-criteria`
+  );
+  return res.criteria ?? {};
+}
+
+export async function saveSuggestionCriteria(
+  repoId: string,
   criteria: Record<string, string>
-): Promise<string[]> {
-  return fetchJSON<string[]>('/api/suggestions/by-criteria', {
-    method: 'POST',
+): Promise<{ status: string; message: string }> {
+  return fetchJSON(`/api/repos/${repoId}/suggestion-criteria`, {
+    method: "POST",
     body: JSON.stringify({ criteria }),
   });
 }

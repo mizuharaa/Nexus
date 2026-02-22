@@ -40,19 +40,13 @@ export function AddFeatureFlow({ repoId = '', onClose = () => {} }: AddFeatureFl
   const [step, setStep] = useState<Step>({ type: "input" });
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [criteria, setCriteria] = useState<Record<string, string>>({});
-
-  const handleCriteriaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = event.target;
-    setCriteria({ ...criteria, [name]: value });
-  };
 
   async function handleDescriptionSubmit() {
     if (!description.trim()) return;
     setError(null);
     setStep({ type: "loading-placement" });
     try {
-      const result = await suggestPlacement(repoId, description.trim(), criteria);
+      const result = await suggestPlacement(repoId, description.trim());
       setStep({ type: "placement", candidates: result.candidates });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to find placement");
@@ -128,22 +122,6 @@ export function AddFeatureFlow({ repoId = '', onClose = () => {} }: AddFeatureFl
           {/* Step: input */}
           {step.type === "input" && (
             <div className="space-y-4">
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  aria-label="criterion1"
-                  name="criterion1"
-                  onChange={handleCriteriaChange}
-                  className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                <input
-                  type="text"
-                  aria-label="criterion2"
-                  name="criterion2"
-                  onChange={handleCriteriaChange}
-                  className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
               <textarea
                 autoFocus
                 value={description}

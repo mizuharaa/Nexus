@@ -1,7 +1,6 @@
 """Feature expansion suggestions for a given node."""
 
 import json
-from typing import List, Dict
 
 from pydantic import BaseModel
 
@@ -31,9 +30,18 @@ class SuggestionItem(BaseModel):
 async def _call_llm_for_suggestions(
     node: dict,
     digest: dict,
+    criteria: dict | None = None,
     api_key: str | None = None,
 ) -> list[dict]:
     """Call the LLM to generate 3-8 feature expansion suggestions."""
+    criteria_text = ""
+    if criteria and any((v or "").strip() for v in criteria.values()):
+        parts = [f"- {k}: {v}" for k, v in criteria.items() if (v or "").strip()]
+        criteria_text = (
+            "\n\nADDITIONAL CRITERIA (all suggestions MUST satisfy these):\n"
+            + "\n".join(parts)
+        )
+
     system_prompt = (
         "You are a senior software architect suggesting feature expansions "
         "for an existing codebase. Given a specific feature node and the "
@@ -48,6 +56,7 @@ async def _call_llm_for_suggestions(
         "- implementation_sketch (string): brief implementation approach\n\n"
         "Suggestions should be practical, actionable, and relevant to the "
         "existing feature. Vary the complexity across suggestions."
+        + criteria_text
     )
 
     user_content = (
@@ -70,18 +79,35 @@ async def _call_llm_for_suggestions(
     return [item.model_dump() for item in items]
 
 
+# In-memory store for suggestion criteria per repo (cleared on server restart)
+_criteria_store: dict[str, dict] = {}
+
+
+def get_criteria_for_repo(repo_id: str) -> dict:
+    """Return stored criteria for a repo, or empty dict."""
+    return _criteria_store.get(repo_id, {})
+
+
+def set_criteria_for_repo(repo_id: str, criteria: dict) -> None:
+    """Store criteria for a repo."""
+    _criteria_store[repo_id] = {k: v for k, v in criteria.items() if (v or "").strip()}
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
 
 async def generate_suggestions(
-    node_id: str, api_key: str | None = None
+    node_id: str,
+    repo_id: str | None = None,
+    api_key: str | None = None,
 ) -> list[dict]:
     """Generate 3-8 related feature expansions for a node.
 
     Fetches the node and repo context from Supabase, calls the LLM,
     stores the suggestions in the database, and returns them.
+    If criteria are set for the repo, they are included in the LLM prompt.
     """
     db = get_supabase()
 
@@ -97,6 +123,18 @@ async def generate_suggestions(
 
     node = node_result.data[0]
 
+    # Resolve repo_id if not provided
+    if not repo_id:
+        run_result = (
+            db.table("analysis_runs")
+            .select("repo_id")
+            .eq("id", node["analysis_run_id"])
+            .execute()
+        )
+        repo_id = run_result.data[0]["repo_id"] if run_result.data else None
+
+    criteria = get_criteria_for_repo(repo_id) if repo_id else {}
+
     # Fetch the analysis run to get the digest
     run_result = (
         db.table("analysis_runs")
@@ -109,9 +147,9 @@ async def generate_suggestions(
 
     digest = run_result.data[0].get("digest_json", {}) or {}
 
-    # Call LLM for suggestions
+    # Call LLM for suggestions (with criteria if set)
     raw_suggestions = await _call_llm_for_suggestions(
-        node=node, digest=digest, api_key=api_key
+        node=node, digest=digest, criteria=criteria or None, api_key=api_key
     )
 
     if not raw_suggestions:
@@ -135,22 +173,3 @@ async def generate_suggestions(
     return insert_result.data
 
 
-def generate_suggestions_with_criteria(criteria: Dict[str, any]) -> List[str]:
-    """Generate suggestions filtered by the provided criteria."""
-    suggestions = []
-    for suggestion in all_suggestions():
-        if meets_criteria(suggestion, criteria):
-            suggestions.append(suggestion)
-    return suggestions
-
-
-def all_suggestions() -> List[str]:
-    """Return all suggestion names from the database."""
-    db = get_supabase()
-    result = db.table("feature_suggestions").select("name").execute()
-    return [row["name"] for row in result.data]
-
-
-def meets_criteria(suggestion: str, criteria: Dict[str, any]) -> bool:
-    """Check whether a suggestion meets the given criteria."""
-    return True

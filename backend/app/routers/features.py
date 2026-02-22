@@ -60,10 +60,13 @@ async def get_suggestions(
     node_id: str,
     openai_key: str | None = Depends(get_openai_key),
 ):
-    """Generate or retrieve feature expansion suggestions for a node."""
+    """Generate or retrieve feature expansion suggestions for a node.
+    Returns cached suggestions if present; otherwise calls LLM (with criteria if set).
+    Criteria are cleared on save, so cache is invalidated only when user saves new criteria.
+    """
     db = get_supabase()
 
-    # Check if suggestions already exist
+    # Return existing suggestions if any (cache hit)
     existing = (
         db.table("feature_suggestions")
         .select("*")
@@ -73,8 +76,20 @@ async def get_suggestions(
     if existing.data:
         return existing.data
 
-    # Generate suggestions via LLM
+    # No cache: get repo_id and generate via LLM (with criteria if set)
+    node_result = db.table("feature_nodes").select("analysis_run_id").eq("id", node_id).execute()
+    if not node_result.data:
+        raise HTTPException(status_code=404, detail="Node not found")
+
+    run_result = (
+        db.table("analysis_runs")
+        .select("repo_id")
+        .eq("id", node_result.data[0]["analysis_run_id"])
+        .execute()
+    )
+    repo_id = run_result.data[0]["repo_id"] if run_result.data else None
+
     from app.services.suggestion_service import generate_suggestions
 
-    suggestions = await generate_suggestions(node_id, api_key=openai_key)
+    suggestions = await generate_suggestions(node_id, repo_id=repo_id, api_key=openai_key)
     return suggestions

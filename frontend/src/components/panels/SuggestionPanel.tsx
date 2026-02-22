@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { buildFeature, generateSuggestionsWithCriteria } from "@/services/api";
+import { useState } from "react";
+import { buildFeature } from "@/services/api";
 import type { FeatureSuggestion } from "@/types";
 import { ExecutionModal } from "@/components/modals/ExecutionModal";
 
@@ -10,7 +10,16 @@ interface SuggestionPanelProps {
   suggestions?: FeatureSuggestion[];
   loading?: boolean;
   onClose?: () => void;
-  criteria?: Record<string, string>;
+  /** When loading, show "Applying criteria: ..." for demo */
+  applyingCriteria?: string[];
+}
+
+const MAX_CRITERIA_LENGTH = 60;
+
+function formatCriteriaDisplay(criteria: string[]): string {
+  if (criteria.length === 0) return "";
+  const full = criteria.join(", ");
+  return full.length > MAX_CRITERIA_LENGTH ? `${full.slice(0, MAX_CRITERIA_LENGTH)}...` : full;
 }
 
 const COMPLEXITY_STYLES: Record<string, string> = {
@@ -24,18 +33,11 @@ export function SuggestionPanel({
   suggestions = [],
   loading = false,
   onClose = () => {},
-  criteria,
+  applyingCriteria = [],
 }: SuggestionPanelProps) {
   const [executionRunId, setExecutionRunId] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
-  const [criteriaSuggestions, setCriteriaSuggestions] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (criteria) {
-      generateSuggestionsWithCriteria(criteria).then(setCriteriaSuggestions);
-    }
-  }, [criteria]);
 
   const handleBuild = async (suggestion: FeatureSuggestion) => {
     setBuilding(suggestion.id);
@@ -60,6 +62,12 @@ export function SuggestionPanel({
           <h2 className="text-sm font-semibold">Feature Suggestions</h2>
           <p className="text-[11px] text-muted-foreground">
             {loading ? "Loading..." : `${suggestions.length} suggestion${suggestions.length !== 1 ? "s" : ""}`}
+            {applyingCriteria.length > 0 && (
+              <>
+                {" · "}
+                <span className="text-primary">Applying criteria: {formatCriteriaDisplay(applyingCriteria)}</span>
+              </>
+            )}
           </p>
         </div>
         <button
@@ -85,6 +93,11 @@ export function SuggestionPanel({
             <p className="text-sm text-muted-foreground">
               Generating suggestions...
             </p>
+            {applyingCriteria.length > 0 && (
+              <p className="mt-2 text-xs text-primary font-medium">
+                Applying criteria: {applyingCriteria.join(", ")}
+              </p>
+            )}
             <p className="mt-1 text-[11px] text-muted-foreground">
               This may take a few seconds
             </p>
@@ -178,15 +191,6 @@ export function SuggestionPanel({
           ))
         )}
       </div>
-
-      {/* Criteria-based suggestions */}
-      {criteriaSuggestions.length > 0 && (
-        <div className="p-4 space-y-2">
-          {criteriaSuggestions.map((suggestion, index) => (
-            <div key={index}>{suggestion}</div>
-          ))}
-        </div>
-      )}
 
       {/* Execution modal */}
       {executionRunId && (

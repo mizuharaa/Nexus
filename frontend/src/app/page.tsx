@@ -8,8 +8,9 @@ import { SuggestionPanel } from "@/components/panels/SuggestionPanel";
 import { AddFeatureFlow } from "@/components/modals/AddFeatureFlow";
 import { UpdateGraphPreviewModal } from "@/components/modals/UpdateGraphPreviewModal";
 import { PlanPanel } from "@/components/panels/PlanPanel";
-import { Network, ListChecks, Plus, RefreshCw } from "lucide-react";
-import { getRepo, startUpdateGraph } from "@/services/api";
+import { Network, ListChecks, Plus, RefreshCw, Settings } from "lucide-react";
+import { getRepo, startUpdateGraph, getSuggestionCriteria } from "@/services/api";
+import { SettingsModal } from "@/components/modals/SettingsModal";
 import type { Repo, FeatureSuggestion } from "@/types";
 
 type AppTab = "graph" | "plan";
@@ -44,12 +45,21 @@ export default function Home() {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showAddFeature, setShowAddFeature] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [suggestionCriteria, setSuggestionCriteria] = useState<Record<string, string>>({});
   const [showUpdatePreview, setShowUpdatePreview] = useState(false);
   const [updatingGraph, setUpdatingGraph] = useState(false);
   const [graphRefreshKey, setGraphRefreshKey] = useState(0);
 
   const isReady = repo?.status === "ready";
   const hasPendingUpdate = Boolean(repo?.pending_analysis_run_id);
+
+  // Fetch suggestion criteria when repo is ready
+  useEffect(() => {
+    if (repo?.id && isReady) {
+      getSuggestionCriteria(repo.id).then(setSuggestionCriteria).catch(() => setSuggestionCriteria({}));
+    }
+  }, [repo?.id, isReady]);
 
   // Show preview modal when pending update appears
   useEffect(() => {
@@ -132,6 +142,14 @@ export default function Home() {
                   <RefreshCw className={`size-5 ${updatingGraph ? "animate-spin" : ""}`} />
                   <span className="text-[10px] font-medium">Sync</span>
                 </button>
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="flex flex-col items-center gap-0.5 py-2 px-2 rounded-r-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mt-2"
+                  title="Suggestion criteria"
+                >
+                  <Settings className="size-5" />
+                  <span className="text-[10px] font-medium">Settings</span>
+                </button>
               </>
             )}
           </>
@@ -180,6 +198,7 @@ export default function Home() {
                   suggestions={suggestions}
                   loading={loadingSuggestions}
                   onClose={() => setShowSuggestions(false)}
+                  applyingCriteria={Object.values(suggestionCriteria).filter((v) => (v ?? "").trim())}
                 />
               </aside>
             )}
@@ -193,6 +212,14 @@ export default function Home() {
         <AddFeatureFlow
           repoId={repo.id}
           onClose={() => setShowAddFeature(false)}
+        />
+      )}
+
+      {showSettings && repo && (
+        <SettingsModal
+          repoId={repo.id}
+          onClose={() => setShowSettings(false)}
+          onSaved={(criteria) => setSuggestionCriteria(criteria)}
         />
       )}
 
