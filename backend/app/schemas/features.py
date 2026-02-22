@@ -39,3 +39,9 @@ class FeatureSuggestionResponse(BaseModel):
     impacted_files: list[str] = []
     test_cases: list[str] = []
     implementation_sketch: str | None = None
+
+
+class SuggestionCriteria(BaseModel):
+    priority: str
+    complexity: str
+    tags: list[str]

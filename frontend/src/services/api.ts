@@ -177,6 +177,17 @@ export async function startNewPlan(repoId: string): Promise<{ conversation_id: s
   return fetchJSON(`/api/repos/${repoId}/plan/new`, { method: "POST" });
 }
 
+// ---- Criteria-based Suggestions ----
+
+export async function fetchSuggestionsWithCriteria(
+  criteria: { priority: string; complexity: string; tags: string[] }
+): Promise<{ id: string; text: string }[]> {
+  return fetchJSON(`/api/suggestions/criteria`, {
+    method: "POST",
+    body: JSON.stringify(criteria),
+  });
+}
+
 // ---- Execution ----
 
 export async function buildFeature(

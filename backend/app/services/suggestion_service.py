@@ -74,6 +74,27 @@ async def _call_llm_for_suggestions(
 # ---------------------------------------------------------------------------
 
 
+def generate_suggestions_with_criteria(
+    base_suggestions: list[dict], criteria: dict
+) -> list[dict]:
+    """Generate suggestions based on custom criteria.
+
+    :param base_suggestions: A list of base suggestions to filter
+    :param criteria: A dictionary of criteria to customize suggestions
+    :return: A filtered list of suggestions matching the criteria
+    """
+    result = []
+    for s in base_suggestions:
+        if criteria.get("complexity") and s.get("complexity") != criteria["complexity"].lower():
+            continue
+        if criteria.get("tags"):
+            suggestion_tags = s.get("tags", [])
+            if suggestion_tags and not any(t in suggestion_tags for t in criteria["tags"]):
+                continue
+        result.append(s)
+    return result
+
+
 async def generate_suggestions(
     node_id: str, api_key: str | None = None
 ) -> list[dict]:
