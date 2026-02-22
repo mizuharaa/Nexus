@@ -780,24 +780,55 @@ async def _run_journey_simulation(
 
     _log(run_id, "build", f"Wiring check — gaps found:\n{gap_list}")
 
-    # ---- Phase 2: Fix (scoped to diagnosed gaps only) ----
-    fix_prompt = (
-        f"The implementation of '{feature_name}' has the following wiring gaps:\n\n"
-        f"{gap_list}\n\n"
-        f"Fix each gap listed above. Nothing else.\n\n"
-        f"RULES:\n"
-        f"- Fix only what is listed above. Do not fix, improve, or touch anything not listed.\n"
-        f"- Only add missing connections: imports, route registrations, prop passing, "
-        f"shape alignment between caller and receiver.\n"
-        f"- Do NOT rewrite existing logic.\n"
-        f"- Do NOT run tests or any commands.\n"
-        f"- Do NOT modify .env, CI configs, or deployment configs.\n"
-        f"- Do NOT use the Task tool.\n"
-        f"- Max 5 files changed."
-    )
+    # ---- Phase 2: Fix each gap individually ----
+    gaps = _parse_gap_list(gap_list)
+    _log(run_id, "build", f"Wiring check — {len(gaps)} gaps to fix")
 
-    _log(run_id, "build", "Wiring check — fixing gaps")
-    await _invoke_claude_code(sandbox_path, fix_prompt, run_id)
+    for i, gap in enumerate(gaps, 1):
+        _log(run_id, "build", f"Wiring check — fixing gap {i}/{len(gaps)}")
+        fix_prompt = (
+            f"Fix this ONE wiring gap in the implementation of '{feature_name}':\n\n"
+            f"{gap}\n\n"
+            f"RULES:\n"
+            f"- Fix this gap and nothing else.\n"
+            f"- Read ONLY the files explicitly mentioned in the gap description above. "
+            f"Do not read any other files.\n"
+            f"- Only add missing connections: imports, route registrations, prop passing, "
+            f"shape alignment between caller and receiver.\n"
+            f"- Do NOT rewrite existing logic.\n"
+            f"- Do NOT run tests or any commands.\n"
+            f"- Do NOT modify .env, CI configs, or deployment configs.\n"
+            f"- Do NOT use the Task tool.\n"
+            f"- Max 3 files changed."
+        )
+        await _invoke_claude_code(sandbox_path, fix_prompt, run_id)
+
+
+def _parse_gap_list(gap_list: str) -> list[str]:
+    """Split a numbered gap list into individual gap descriptions.
+
+    Skips any preamble before the first numbered item so Claude doesn't receive
+    non-gap text as a task.
+    """
+    gaps: list[str] = []
+    current: list[str] = []
+    in_gap = False  # only collect once we've seen the first numbered item
+
+    for line in gap_list.splitlines():
+        stripped = line.strip()
+        is_new_item = bool(re.match(r"^[-*\s]*\*{0,2}\s*\d+[\.\)]\s", stripped))
+        if is_new_item:
+            if current and in_gap:
+                gaps.append("\n".join(current).strip())
+            current = []
+            in_gap = True
+        if stripped and in_gap:
+            current.append(line)
+
+    if current and in_gap:
+        gaps.append("\n".join(current).strip())
+
+    return gaps
 
 
 # ---------------------------------------------------------------------------
