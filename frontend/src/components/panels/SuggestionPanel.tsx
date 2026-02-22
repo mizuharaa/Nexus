@@ -1,23 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { buildFeature } from "@/services/api";
-import { fetchSuggestionsWithCriteria } from "@/services/api";
 import type { FeatureSuggestion } from "@/types";
 import { ExecutionModal } from "@/components/modals/ExecutionModal";
 
-interface SuggestionCriteria {
-  priority: string;
-  complexity: string;
-  tags: string[];
-}
-
 interface SuggestionPanelProps {
-  nodeId?: string;
-  suggestions?: FeatureSuggestion[];
+  nodeId: string;
+  suggestions: FeatureSuggestion[];
   loading?: boolean;
-  onClose?: () => void;
-  criteria?: SuggestionCriteria;
+  onClose: () => void;
 }
 
 const COMPLEXITY_STYLES: Record<string, string> = {
@@ -28,23 +20,13 @@ const COMPLEXITY_STYLES: Record<string, string> = {
 
 export function SuggestionPanel({
   nodeId,
-  suggestions: externalSuggestions,
+  suggestions,
   loading = false,
   onClose,
-  criteria,
 }: SuggestionPanelProps) {
   const [executionRunId, setExecutionRunId] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
-  const [criteriaSuggestions, setCriteriaSuggestions] = useState<{ id: string; text: string }[]>([]);
-
-  useEffect(() => {
-    if (criteria) {
-      fetchSuggestionsWithCriteria(criteria).then(setCriteriaSuggestions);
-    }
-  }, [criteria]);
-
-  const suggestions = externalSuggestions ?? [];
 
   const handleBuild = async (suggestion: FeatureSuggestion) => {
     setBuilding(suggestion.id);
@@ -60,18 +42,6 @@ export function SuggestionPanel({
       setBuilding(null);
     }
   };
-
-  if (criteria) {
-    return (
-      <div className="flex h-full flex-col">
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {criteriaSuggestions.map((suggestion) => (
-            <div key={suggestion.id}>{suggestion.text}</div>
-          ))}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-full flex-col">

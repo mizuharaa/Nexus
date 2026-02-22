@@ -26,8 +26,8 @@ interface CreatedSuggestion {
 }
 
 interface AddFeatureFlowProps {
-  repoId?: string;
-  onClose?: () => void;
+  repoId: string;
+  onClose: () => void;
 }
 
 const COMPLEXITY_STYLES: Record<string, string> = {
@@ -40,12 +40,6 @@ export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
   const [step, setStep] = useState<Step>({ type: "input" });
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [criteria, setCriteria] = useState({ priority: "", complexity: "", tags: "" });
-
-  const handleCriteriaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCriteria((prev) => ({ ...prev, [name]: value }));
-  };
 
   async function handleDescriptionSubmit() {
     if (!description.trim()) return;
@@ -142,20 +136,6 @@ export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
                 rows={4}
                 className="w-full rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
               />
-              <div className="space-y-2">
-                <div>
-                  <label htmlFor="priority" className="block text-xs text-muted-foreground mb-1">Priority</label>
-                  <input id="priority" name="priority" value={criteria.priority} onChange={handleCriteriaChange} className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-                </div>
-                <div>
-                  <label htmlFor="complexity" className="block text-xs text-muted-foreground mb-1">Complexity</label>
-                  <input id="complexity" name="complexity" value={criteria.complexity} onChange={handleCriteriaChange} className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-                </div>
-                <div>
-                  <label htmlFor="tags" className="block text-xs text-muted-foreground mb-1">Tags</label>
-                  <input id="tags" name="tags" value={criteria.tags} onChange={handleCriteriaChange} className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-                </div>
-              </div>
               <button
                 onClick={handleDescriptionSubmit}
                 disabled={!description.trim()}
