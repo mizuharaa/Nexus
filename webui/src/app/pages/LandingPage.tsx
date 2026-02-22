@@ -1,11 +1,12 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Link } from "react-router";
 import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
-import { ArrowRight, Github, Eye, Telescope, Terminal, ChevronDown, Zap, Shield, GitBranch, BarChart3 } from "lucide-react";
+import { ArrowRight, Github, Eye, Telescope, ChevronDown, Zap, Shield, GitBranch, BarChart3, Cpu } from "lucide-react";
 import HeroPipelineAnimation from "../components/HeroPipelineAnimation";
 import GlobeVisualization from "../components/GlobeVisualization";
 import CompanyCarousel from "../components/CompanyCarousel";
 import ThemeToggle from "../components/ThemeToggle";
+import CustomCursor from "../components/CustomCursor";
 import { useTheme } from "../components/ThemeProvider";
 import StackingCards from "../components/StackingCards";
 
@@ -58,24 +59,236 @@ const capabilities = [
     icon: Eye,
     title: "TOPOLOGY",
     desc: "Your codebase as a living feature graph. Click any node to see dependencies, risk scores, and expansion paths.",
+    accent: "#8b5cf6",
   },
   {
     num: "02",
     icon: Telescope,
     title: "FORESIGHT",
     desc: "Three strategic paths generated from your code. Expansion. Stability. Pivot. See the tradeoffs before you commit.",
+    accent: "#6366f1",
   },
   {
     num: "03",
-    icon: Terminal,
+    icon: Cpu,
     title: "EXECUTION",
     desc: "Pick a feature. Claude builds it in a sandbox. Tests run. Lint passes. A deploy-ready PR opens automatically.",
+    accent: "#a78bfa",
   },
+];
+
+const testimonials = [
+  { name: "User A", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
+  { name: "User B", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
+  { name: "User C", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
+  { name: "User D", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
+  { name: "User E", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
+  { name: "User F", role: "Role @ Company", text: "Testimonial placeholder — real feedback coming soon." },
 ];
 
 /* ═══════════════════════════════════════════
    Navbar
    ═══════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   Scroll Text Reveal — words fade in as you scroll
+   ═══════════════════════════════════════════ */
+function TextReveal({ text, className = "", style = {} }: { text: string; className?: string; style?: React.CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.4"] });
+  const words = text.split(" ");
+  return (
+    <div ref={ref} className={className} style={style}>
+      {words.map((word, i) => (
+        <TextRevealWord key={i} progress={scrollYProgress} index={i} total={words.length}>
+          {word}
+        </TextRevealWord>
+      ))}
+    </div>
+  );
+}
+
+function TextRevealWord({ children, progress, index, total }: { children: string; progress: ReturnType<typeof useScroll>["scrollYProgress"]; index: number; total: number }) {
+  const start = index / total;
+  const end = start + 1 / total;
+  const opacity = useTransform(progress, [start, end], [0.15, 1]);
+  const filterVal = useTransform(progress, [start, end], ["blur(4px)", "blur(0px)"]);
+  return (
+    <motion.span
+      className="nexus-text-reveal-word"
+      style={{ opacity, filter: filterVal, marginRight: "0.3em" }}
+    >
+      {children}
+    </motion.span>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Testimonial Ticker
+   ═══════════════════════════════════════════ */
+function TestimonialTicker({ isDark }: { isDark: boolean }) {
+  return (
+    <div className="relative overflow-hidden py-16" style={{ zIndex: 10 }}>
+      <div className="nexus-ticker">
+        {[...testimonials, ...testimonials].map((t, i) => (
+          <div key={i} className="nexus-ticker-card">
+            <p style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.6)", fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
+              "{t.text}"
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #8b5cf6, #c084fc)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+                {t.name[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.8)" }}>{t.name}</div>
+                <div style={{ fontSize: 10, color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }}>{t.role}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Particle Field Background
+   ═══════════════════════════════════════════ */
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1, y: -1 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const resize = () => {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const particles: { x: number; y: number; vx: number; vy: number; r: number }[] = [];
+    const count = 60;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 1.5 + 0.5,
+      });
+    }
+
+    const onMove = (e: MouseEvent) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
+    window.addEventListener("mousemove", onMove);
+
+    let raf: number;
+    const draw = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        const mx = mouseRef.current.x;
+        const my = mouseRef.current.y;
+        if (mx >= 0) {
+          const dist = Math.hypot(p.x - mx, p.y - my);
+          if (dist < 120) {
+            const force = (120 - dist) / 120 * 0.015;
+            p.vx += (p.x - mx) * force;
+            p.vy += (p.y - my) * force;
+          }
+        }
+
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(139, 92, 246, 0.25)";
+        ctx.fill();
+      });
+
+      for (let i = 0; i < count; i++) {
+        for (let j = i + 1; j < count; j++) {
+          const d = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+          if (d < 100) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(139, 92, 246, ${(1 - d / 100) * 0.08})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onMove);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 1 }} />;
+}
+
+/* ═══════════════════════════════════════════
+   Magnetic Button wrapper
+   ═══════════════════════════════════════════ */
+function MagneticWrap({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+
+  const handleMove = (e: React.MouseEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist < 80) {
+      setOffset({ x: dx * 0.25, y: dy * 0.25 });
+    }
+  };
+
+  const handleLeave = () => setOffset({ x: 0, y: 0 });
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
+      animate={{ x: offset.x, y: offset.y }}
+      transition={{ type: "spring", stiffness: 350, damping: 15, mass: 0.5 }}
+      style={{ display: "inline-flex" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 const FEATURE_ITEMS = [
   { icon: Zap, label: "Auto-Fix Engine", desc: "Autonomous code repair pipeline", href: "#features" },
@@ -192,10 +405,12 @@ function NavBar({ isDark }: { isDark: boolean }) {
         {/* Right — Actions */}
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link to="/onboarding" className="nexus-nav-cta">
-            Get Started
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <MagneticWrap>
+            <Link to="/onboarding" className="nexus-nav-cta">
+              Get Started
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </MagneticWrap>
         </div>
       </div>
     </nav>
@@ -515,6 +730,12 @@ export default function LandingPage() {
         aria-hidden="true"
       />
 
+      {/* Custom cursor */}
+      <CustomCursor />
+
+      {/* Particle field behind hero */}
+      <ParticleField />
+
       {/* ═══════════ NAVBAR ═══════════ */}
       <NavBar isDark={isDark} />
 
@@ -625,61 +846,78 @@ export default function LandingPage() {
       <StackingCards />
 
       {/* ═══════════ CAPABILITIES ═══════════ */}
-      <section className="relative py-24 md:py-32" style={{ zIndex: 10 }}>
-        <div className="max-w-[95vw] mx-auto px-6 md:px-12">
-          <ScrollReveal direction="up" scale>
-            <div className="text-center mb-16 md:mb-20">
-              <h2
-                className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-[0.9] tracking-tighter uppercase mb-6"
-                style={{ color: isDark ? "white" : "#1A1A2E" }}
-              >
-                Built for
-                <br />
-                <span className="nexus-gradient-highlight">Solo Builders.</span>
-              </h2>
-              <p
-                className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-                style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)" }}
-              >
-                Three core systems working together. Understand your code.
-                Plan your future. Execute without prompting.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-px"
-            style={{ background: isDark ? "rgba(123,92,255,0.12)" : "rgba(123,92,255,0.08)" }}
+      <section className="relative py-24 md:py-32" style={{ zIndex: 10 }} id="features">
+        <div className="max-w-[1200px] mx-auto px-6 md:px-12">
+          <TextReveal
+            text="Built for Solo Builders. Every tool you need, zero config required."
+            className="text-[clamp(1.8rem,4vw,3.2rem)] font-black leading-[1.1] tracking-tight text-center mb-6"
+            style={{ color: isDark ? "white" : "#1A1A2E" }}
+          />
+          <p
+            className="text-center text-sm md:text-base max-w-2xl mx-auto mb-16 md:mb-20 leading-relaxed"
+            style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.4)" }}
           >
+            Three core systems working together. Understand your code. Plan your
+            future. Execute without prompting.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
             {capabilities.map((cap, i) => {
               const Icon = cap.icon;
               return (
-                <ScrollReveal key={i} direction="up" delay={i * 0.1}>
+                <ScrollReveal key={i} direction="up" delay={i * 0.12}>
                   <div
-                    className="nexus-kinetic-card cursor-pointer p-10 md:p-12 relative overflow-hidden"
-                    style={{ background: isDark ? "#0B0B12" : "#F5F5F7" }}
+                    className="nexus-kinetic-card relative overflow-hidden rounded-2xl p-8 md:p-10 min-h-[280px] group transition-all duration-300 hover:translate-y-[-6px]"
+                    style={{
+                      background: isDark
+                        ? "linear-gradient(160deg, rgba(12,12,20,0.92) 0%, rgba(18,14,30,0.92) 100%)"
+                        : "linear-gradient(160deg, rgba(255,255,255,0.9) 0%, rgba(245,242,255,0.9) 100%)",
+                      border: `1px solid ${isDark ? "rgba(139,92,246,0.1)" : "rgba(0,0,0,0.08)"}`,
+                      backdropFilter: "blur(16px)",
+                      boxShadow: isDark
+                        ? "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.35)"
+                        : "0 4px 24px rgba(0,0,0,0.06)",
+                    }}
                   >
+                    {/* Top edge gradient line */}
                     <div
-                      className="absolute -top-6 -right-3 text-[8rem] md:text-[10rem] font-black leading-none select-none pointer-events-none transition-colors duration-300"
-                      style={{ color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)" }}
+                      className="absolute top-0 left-0 right-0 h-[1px] opacity-30 group-hover:opacity-70 transition-opacity duration-300"
+                      style={{ background: `linear-gradient(90deg, transparent 5%, ${cap.accent} 50%, transparent 95%)` }}
+                    />
+
+                    {/* Large watermark number */}
+                    <span
                       aria-hidden="true"
+                      className="absolute top-1 right-3 font-black pointer-events-none select-none transition-colors duration-300"
+                      style={{
+                        fontSize: "clamp(5rem, 10vw, 8rem)",
+                        lineHeight: 1,
+                        color: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.04)",
+                      }}
                     >
                       {cap.num}
-                    </div>
+                    </span>
+
+                    {/* Corner glow */}
+                    <div
+                      className="absolute -bottom-16 -right-8 w-48 h-48 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                      style={{ background: `radial-gradient(circle, ${cap.accent}12, transparent 70%)` }}
+                    />
+
                     <Icon
-                      className="w-7 h-7 md:w-8 md:h-8 mb-6 transition-colors duration-300"
-                      style={{ color: "#7B5CFF" }}
+                      className="w-7 h-7 mb-6 relative z-10 transition-colors duration-300"
+                      style={{ color: isDark ? "#a78bfa" : "#7c3aed" }}
                       strokeWidth={1.5}
                     />
                     <h3
-                      className="text-2xl md:text-3xl lg:text-4xl font-black uppercase tracking-tighter mb-4 transition-colors duration-300"
-                      style={{ color: isDark ? "white" : "#1A1A2E" }}
+                      className="text-xl md:text-2xl font-extrabold mb-3 tracking-tight relative z-10 transition-colors duration-300"
+                      style={{ color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.88)" }}
                     >
                       {cap.title}
                     </h3>
                     <p
-                      className="text-sm md:text-base lg:text-lg leading-relaxed max-w-sm transition-colors duration-300"
-                      style={{ color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)" }}
+                      className="text-sm leading-relaxed relative z-10 transition-colors duration-300"
+                      style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.45)" }}
                     >
                       {cap.desc}
                     </p>
@@ -690,6 +928,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════ TESTIMONIALS ═══════════ */}
+      <TestimonialTicker isDark={isDark} />
 
       {/* ═══════════ GUARDRAILS + DASHBOARD ═══════════ */}
       <section
@@ -721,17 +962,12 @@ export default function LandingPage() {
 
         {/* Heading */}
         <div className="max-w-[1000px] mx-auto px-6 md:px-12 text-center relative">
-          <ScrollReveal direction="up" scale>
-            <h2
-              className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-[0.9] tracking-tighter uppercase mb-6"
-              style={{ color: isDark ? "white" : "#1A1A2E" }}
-            >
-              Sandboxed. Constrained.
-              <br />
-              <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.2)" }}>
-                Never Out of Control.
-              </span>
-            </h2>
+          <TextReveal
+            text="Sandboxed. Constrained. Never Out of Control."
+            className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-[0.9] tracking-tighter uppercase mb-6"
+            style={{ color: isDark ? "white" : "#1A1A2E" }}
+          />
+          <ScrollReveal direction="up">
             <p
               className="text-base md:text-lg max-w-3xl mx-auto mb-4 leading-relaxed"
               style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)" }}
@@ -798,23 +1034,13 @@ export default function LandingPage() {
       {/* ═══════════ GLOBE & STATS ═══════════ */}
       <section className="relative py-24 md:py-32" style={{ zIndex: 10 }}>
         <div className="max-w-[1440px] mx-auto px-6 md:px-12">
-          <ScrollReveal direction="up" scale>
-            <div className="text-center mb-12">
-              <h2
-                className="text-[clamp(2.5rem,6vw,5rem)] font-black leading-[0.9] tracking-tighter uppercase mb-4"
-                style={{ color: isDark ? "white" : "#1A1A2E" }}
-              >
-                Global Scale.
-              </h2>
-              <p
-                className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed"
-                style={{ color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)" }}
-              >
-                Engineering teams across the globe use NEXUS to accelerate development
-                and maintain code quality at scale.
-              </p>
-            </div>
-          </ScrollReveal>
+          <div className="text-center mb-12">
+            <TextReveal
+              text="Global Scale. Engineering teams across the globe use Nexus to ship faster."
+              className="text-[clamp(1.6rem,3.5vw,2.8rem)] font-black leading-[1.15] tracking-tight max-w-3xl mx-auto"
+              style={{ color: isDark ? "white" : "#1A1A2E" }}
+            />
+          </div>
 
           <ScrollReveal direction="up" scale delay={0.15}>
             <div className="nexus-globe-section">
@@ -860,15 +1086,14 @@ export default function LandingPage() {
       <section ref={ctaRef} className="relative py-32 md:py-40" style={{ zIndex: 10 }}>
         <motion.div style={{ scale: ctaScale, y: ctaY }}>
           <div className="max-w-[95vw] mx-auto px-6 md:px-12 text-center">
-            <ScrollReveal direction="up" scale>
-              <h2
-                className="text-[clamp(2.5rem,8vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase mb-8"
+            <div className="mb-8">
+              <TextReveal
+                text="Stop Building Alone. Start Evolving."
+                className="text-[clamp(2.5rem,8vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase"
                 style={{ color: isDark ? "white" : "#1A1A2E" }}
-              >
-                Stop Building Alone.
-                <br />
-                <span className="nexus-gradient-highlight">Start Evolving.</span>
-              </h2>
+              />
+            </div>
+            <ScrollReveal direction="up" scale>
               <p
                 className="text-base md:text-lg max-w-xl mx-auto mb-10 leading-relaxed"
                 style={{ color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.35)" }}

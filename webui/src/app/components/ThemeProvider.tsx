@@ -1,10 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
 type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
+  toggleTheme: (e?: React.MouseEvent) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -37,9 +37,48 @@ export default function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  const toggleTheme = useCallback((e?: React.MouseEvent) => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+
+    if (
+      e &&
+      typeof document !== "undefined" &&
+      "startViewTransition" in document &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const x = e.clientX;
+      const y = e.clientY;
+      const maxRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      const style = document.createElement("style");
+      style.textContent = `
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+          animation: none;
+          mix-blend-mode: normal;
+        }
+        ::view-transition-new(root) {
+          clip-path: circle(0px at ${x}px ${y}px);
+          animation: nexusThemeReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes nexusThemeReveal {
+          to { clip-path: circle(${maxRadius}px at ${x}px ${y}px); }
+        }
+      `;
+      document.head.appendChild(style);
+
+      (document as any).startViewTransition(() => {
+        setTheme(next);
+      }).finished.then(() => {
+        style.remove();
+      });
+    } else {
+      setTheme(next);
+    }
+  }, [theme]);
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

@@ -23,44 +23,52 @@ export interface Cluster {
   ry: number;
 }
 
+/*
+  Radial-tree hierarchy:
+    Layer 0 (top):     root
+    Layer 1:           config ─── auth
+    Layer 2 (center):  docs ─── ENV (primary) ─── routes
+    Layer 3:           cache ─── deploy
+*/
+
 const DESKTOP_NODES: GraphNode[] = [
-  { id: "root",   label: "app/",          x: 8,   y: 50,  tier: "secondary", type: "config" },
-  { id: "config", label: "config.yml",    x: 25,  y: 22,  tier: "secondary", type: "config" },
-  { id: "auth",   label: "auth.ts",       x: 28,  y: 52,  tier: "secondary", type: "code" },
-  { id: "env",    label: ".env",          x: 50,  y: 38,  tier: "primary",   type: "secrets" },
-  { id: "routes", label: "api/routes.ts", x: 48,  y: 68,  tier: "secondary", type: "code" },
-  { id: "cache",  label: "cache.ts",      x: 72,  y: 52,  tier: "tertiary",  type: "code" },
-  { id: "docs",   label: "readme.md",     x: 75,  y: 24,  tier: "tertiary",  type: "code" },
-  { id: "deploy", label: "deploy.sh",     x: 92,  y: 50,  tier: "secondary", type: "deploy" },
+  { id: "root",   label: "app/",          x: 50,  y: 10,  tier: "secondary", type: "config" },
+  { id: "config", label: "config.yml",    x: 26,  y: 28,  tier: "secondary", type: "config" },
+  { id: "auth",   label: "auth.ts",       x: 74,  y: 28,  tier: "secondary", type: "code" },
+  { id: "docs",   label: "readme.md",     x: 18,  y: 52,  tier: "tertiary",  type: "code" },
+  { id: "env",    label: ".env",          x: 50,  y: 48,  tier: "primary",   type: "secrets" },
+  { id: "routes", label: "api/routes.ts", x: 82,  y: 52,  tier: "secondary", type: "code" },
+  { id: "cache",  label: "cache.ts",      x: 32,  y: 76,  tier: "tertiary",  type: "code" },
+  { id: "deploy", label: "deploy.sh",     x: 68,  y: 76,  tier: "secondary", type: "deploy" },
 ];
 
 const MOBILE_NODES: GraphNode[] = [
-  { id: "root",   label: "app/",          x: 12,  y: 15,  tier: "secondary", type: "config" },
-  { id: "config", label: "config.yml",    x: 30,  y: 15,  tier: "secondary", type: "config" },
-  { id: "auth",   label: "auth.ts",       x: 14,  y: 42,  tier: "secondary", type: "code" },
-  { id: "env",    label: ".env",          x: 50,  y: 30,  tier: "primary",   type: "secrets" },
-  { id: "routes", label: "api/routes.ts", x: 50,  y: 58,  tier: "secondary", type: "code" },
-  { id: "cache",  label: "cache.ts",      x: 78,  y: 42,  tier: "tertiary",  type: "code" },
-  { id: "docs",   label: "readme.md",     x: 78,  y: 15,  tier: "tertiary",  type: "code" },
-  { id: "deploy", label: "deploy.sh",     x: 88,  y: 70,  tier: "secondary", type: "deploy" },
+  { id: "root",   label: "app/",          x: 50,  y: 10,  tier: "secondary", type: "config" },
+  { id: "config", label: "config.yml",    x: 22,  y: 28,  tier: "secondary", type: "config" },
+  { id: "auth",   label: "auth.ts",       x: 78,  y: 28,  tier: "secondary", type: "code" },
+  { id: "docs",   label: "readme.md",     x: 14,  y: 55,  tier: "tertiary",  type: "code" },
+  { id: "env",    label: ".env",          x: 50,  y: 48,  tier: "primary",   type: "secrets" },
+  { id: "routes", label: "api/routes.ts", x: 86,  y: 55,  tier: "secondary", type: "code" },
+  { id: "cache",  label: "cache.ts",      x: 30,  y: 78,  tier: "tertiary",  type: "code" },
+  { id: "deploy", label: "deploy.sh",     x: 70,  y: 78,  tier: "secondary", type: "deploy" },
 ];
 
 export const EDGES: GraphEdge[] = [
   { from: "root",   to: "config" },
   { from: "root",   to: "auth" },
-  { from: "auth",   to: "env",    critical: true },
   { from: "config", to: "env",    critical: true },
-  { from: "auth",   to: "routes" },
-  { from: "routes", to: "cache" },
-  { from: "cache",  to: "deploy" },
+  { from: "auth",   to: "env",    critical: true },
   { from: "config", to: "docs" },
-  { from: "docs",   to: "deploy" },
+  { from: "auth",   to: "routes" },
+  { from: "env",    to: "cache" },
+  { from: "env",    to: "deploy" },
+  { from: "routes", to: "deploy" },
 ];
 
 export const CLUSTERS: Cluster[] = [
-  { cx: 18, cy: 40, rx: 18, ry: 24 },
-  { cx: 46, cy: 48, rx: 18, ry: 24 },
-  { cx: 78, cy: 42, rx: 16, ry: 22 },
+  { cx: 50, cy: 12, rx: 12, ry: 10 },
+  { cx: 36, cy: 44, rx: 22, ry: 22 },
+  { cx: 70, cy: 52, rx: 20, ry: 22 },
 ];
 
 export function getNodes(isMobile: boolean): GraphNode[] {
@@ -86,7 +94,7 @@ export function edgePath(
   const by = (b.y / 100) * h;
   const dx = bx - ax;
   const dy = by - ay;
-  const mx = (ax + bx) / 2 - dy * 0.12;
-  const my = (ay + by) / 2 + dx * 0.12;
-  return `M ${ax} ${ay} Q ${mx} ${my} ${bx} ${by}`;
+  const cx = (ax + bx) / 2 - dy * 0.08;
+  const cy = (ay + by) / 2 + dx * 0.08;
+  return `M ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`;
 }

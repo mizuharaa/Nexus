@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useTheme } from "./ThemeProvider";
 
 const cards = [
@@ -77,6 +77,30 @@ const cards = [
 export default function StackingCards() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
+  const [activeIdx, setActiveIdx] = useState(-1);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let topIdx = -1;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const idx = cardRefs.current.indexOf(entry.target as HTMLElement);
+            if (idx > topIdx) topIdx = idx;
+          }
+        });
+        if (topIdx >= 0) setActiveIdx(topIdx);
+      },
+      { threshold: 0.5 }
+    );
+
+    cardRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <section className="stackWrap">
@@ -112,45 +136,60 @@ export default function StackingCards() {
       </div>
 
       <div className="stackInner">
-        {cards.map((card, i) => (
-          <article
-            key={card.num}
-            className="stackCard"
-            style={
-              {
-                top: `${12 + i * 2}vh`,
-                zIndex: i + 1,
-                "--card-accent": card.accent,
-                "--card-glow": card.glow,
-                "--card-border": card.border,
-              } as React.CSSProperties
-            }
-          >
-            <span className="stackCard__num" aria-hidden="true">
-              {card.num}
-            </span>
+        {cards.map((card, i) => {
+          const isActive = i === activeIdx;
+          return (
+            <article
+              ref={(el) => { cardRefs.current[i] = el; }}
+              key={card.num}
+              className={`stackCard ${isActive ? "stackCard--active" : ""}`}
+              style={
+                {
+                  top: `${12 + i * 2}vh`,
+                  zIndex: i + 1,
+                  "--card-accent": card.accent,
+                  "--card-glow": card.glow,
+                  "--card-border": card.border,
+                } as React.CSSProperties
+              }
+            >
+              <span className="stackCard__num" aria-hidden="true">
+                {card.num}
+              </span>
 
-            <div className="stackCard__content">
-              <div className="stackCard__left">
-                <span className="stackCard__badge">{card.badge}</span>
-                <h3 className="stackCard__title">{card.title}</h3>
-                <p className="stackCard__desc">{card.desc}</p>
+              {/* Progress indicator */}
+              <div className="stackCard__progress">
+                <div
+                  className="stackCard__progressFill"
+                  style={{
+                    width: isActive ? "100%" : "0%",
+                    background: card.accent,
+                  }}
+                />
               </div>
 
-              <ul className="stackCard__features">
-                {card.features.map((f, fi) => (
-                  <li key={fi} className="stackCard__feature">
-                    <span
-                      className="stackCard__featureDot"
-                      style={{ background: card.accent }}
-                    />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </article>
-        ))}
+              <div className="stackCard__content">
+                <div className="stackCard__left">
+                  <span className="stackCard__badge">{card.badge}</span>
+                  <h3 className="stackCard__title">{card.title}</h3>
+                  <p className="stackCard__desc">{card.desc}</p>
+                </div>
+
+                <ul className="stackCard__features">
+                  {card.features.map((f, fi) => (
+                    <li key={fi} className="stackCard__feature">
+                      <span
+                        className="stackCard__featureDot"
+                        style={{ background: card.accent }}
+                      />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          );
+        })}
 
         <div style={{ height: "50vh" }} aria-hidden="true" />
       </div>

@@ -20,7 +20,7 @@
 .stackCard {
   position: sticky;
   padding: 2.5rem 3rem;
-  border-radius: 0.75rem;
+  border-radius: 1rem;
   margin-bottom: 40vh;
   overflow: hidden;
   background: linear-gradient(
@@ -35,16 +35,53 @@
     0 4px 24px rgba(0, 0, 0, 0.4),
     0 16px 48px rgba(0, 0, 0, 0.25);
   transition:
-    border-color 0.35s ease,
-    box-shadow 0.35s ease;
+    border-color 0.4s ease,
+    box-shadow 0.4s ease,
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .stackCard:last-of-type {
   margin-bottom: 0;
 }
 
+/* ── Active state (scroll-triggered) ── */
+.stackCard--active {
+  border-color: var(--card-accent, #8b5cf6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 60px var(--card-glow, rgba(139, 92, 246, 0.1));
+}
+
+.stackCard--active .stackCard__num {
+  color: var(--card-glow, rgba(139, 92, 246, 0.14));
+}
+
+.stackCard--active .stackCard__badge {
+  opacity: 1;
+  border-color: var(--card-accent, #8b5cf6);
+}
+
+.stackCard--active .stackCard__feature {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stackCard--active .stackCard__featureDot {
+  opacity: 1;
+}
+
+.stackCard--active::before {
+  opacity: 0.8;
+}
+
+.stackCard--active::after {
+  opacity: 1.2;
+}
+
+/* ── Hover ── */
 .stackCard:hover {
   border-color: var(--card-accent, #8b5cf6);
+  transform: translateY(-2px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 8px 40px rgba(0, 0, 0, 0.5),
@@ -65,8 +102,8 @@
     var(--card-accent, #8b5cf6) 50%,
     transparent 95%
   );
-  opacity: 0.3;
-  transition: opacity 0.35s ease;
+  opacity: 0.25;
+  transition: opacity 0.4s ease;
 }
 
 .stackCard:hover::before {
@@ -88,12 +125,30 @@
     transparent 70%
   );
   pointer-events: none;
-  transition: opacity 0.35s ease;
-  opacity: 0.7;
+  transition: opacity 0.4s ease;
+  opacity: 0.5;
 }
 
 .stackCard:hover::after {
   opacity: 1.4;
+}
+
+/* ── Progress bar ── */
+.stackCard__progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.stackCard__progressFill {
+  height: 100%;
+  width: 0;
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 0 1px 1px 0;
 }
 
 /* ── Card layout ── */
@@ -122,7 +177,7 @@
   pointer-events: none;
   user-select: none;
   color: var(--card-border, rgba(139, 92, 246, 0.06));
-  transition: color 0.35s ease;
+  transition: color 0.4s ease;
 }
 
 .stackCard:hover .stackCard__num {
@@ -141,12 +196,13 @@
   color: var(--card-accent, #8b5cf6);
   background: var(--card-glow, rgba(139, 92, 246, 0.05));
   margin-bottom: 1rem;
-  opacity: 0.7;
-  transition: opacity 0.35s ease;
+  opacity: 0.6;
+  transition: opacity 0.4s ease, border-color 0.4s ease;
 }
 
 .stackCard:hover .stackCard__badge {
   opacity: 1;
+  border-color: var(--card-accent, #8b5cf6);
 }
 
 .stackCard__title {
@@ -186,9 +242,9 @@
   align-items: baseline;
   gap: 0.75rem;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.4);
   line-height: 1.6;
-  transition: color 0.3s ease;
+  transition: color 0.35s ease;
 }
 
 .stackCard:hover .stackCard__feature {
@@ -201,8 +257,8 @@
   height: 5px;
   border-radius: 50%;
   margin-top: 0.45rem;
-  opacity: 0.6;
-  transition: opacity 0.3s ease;
+  opacity: 0.5;
+  transition: opacity 0.35s ease;
 }
 
 .stackCard:hover .stackCard__featureDot {
@@ -236,6 +292,10 @@
   color: rgba(0, 0, 0, 0.4);
 }
 
+.nexus-light .stackCard__progress {
+  background: rgba(0, 0, 0, 0.04);
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 768px) {
@@ -255,7 +315,6 @@
   }
 
   .stackCard__features {
-    padding-top: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.04);
     padding-top: 1rem;
   }
@@ -265,9 +324,33 @@
   .stackCard {
     padding: 1.5rem 1.25rem;
     margin-bottom: 30vh;
+    border-radius: 0.75rem;
   }
 
   .stackInner {
     padding: 0 0.5rem;
+  }
+
+  .stackCard__title {
+    font-size: 1.5rem;
+  }
+
+  .stackCard__desc {
+    font-size: 0.85rem;
+  }
+
+  .stackCard__feature {
+    font-size: 0.8rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stackCard {
+    transition: none;
+  }
+
+  .stackCard__progressFill {
+    transition: none;
   }
 }

@@ -67,7 +67,7 @@ const CHECKLIST = [
 
 /* ─── Phase enum ─── */
 
-type Phase = "graph" | "bubbles" | "typewriter" | "testing" | "slider" | "success";
+type Phase = "graph" | "bubbles" | "typewriter" | "testing" | "slider" | "success" | "pr";
 
 /* ─── Node badge icons (tiny inline SVGs) ─── */
 
@@ -132,6 +132,7 @@ export default function HeroPipelineAnimation() {
   const [sliderPos, setSliderPos] = useState(75);
   const [showSuccess, setShowSuccess] = useState(false);
   const [checkedItems, setCheckedItems] = useState(0);
+  const [showPR, setShowPR] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   /* Scrub + slider refs */
@@ -178,9 +179,10 @@ export default function HeroPipelineAnimation() {
           setDiffLines(0);
           setTestsDone(0);
           setSliderPos(75);
-          setShowSuccess(false);
-          setCheckedItems(0);
-          setProgress(0);
+        setShowSuccess(false);
+        setCheckedItems(0);
+        setShowPR(false);
+        setProgress(0);
 
           await wait(prefersReduced ? 0 : 400);
 
@@ -268,8 +270,15 @@ export default function HeroPipelineAnimation() {
             tick();
             await wait(prefersReduced ? 100 : 500);
           }
+          setProgress(95);
+          await wait(prefersReduced ? 500 : 2000);
+
+          /* Phase 7 — GitHub PR merged */
+          setPhase("pr");
+          setShowSuccess(false);
+          setShowPR(true);
           setProgress(100);
-          await wait(prefersReduced ? 1000 : 4500);
+          await wait(prefersReduced ? 1000 : 5000);
         }
       } catch {
         /* cancelled — expected on cleanup, do nothing */
@@ -334,7 +343,12 @@ export default function HeroPipelineAnimation() {
       <div className="heroPipeline__grid" />
 
       {/* ── SVG layer: clusters + edges ── */}
-      <svg className="heroPipeline__svg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <svg
+        className="heroPipeline__svg"
+        viewBox="0 0 1000 1000"
+        preserveAspectRatio="none"
+        style={{ width: "100%", height: "100%" }}
+      >
         <defs>
           <linearGradient id="hp-edge" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#a78bfa" />
@@ -353,8 +367,8 @@ export default function HeroPipelineAnimation() {
             <animate attributeName="x1" from="-100%" to="100%" dur="2.5s" repeatCount="indefinite" />
             <animate attributeName="x2" from="0%" to="200%" dur="2.5s" repeatCount="indefinite" />
           </linearGradient>
-          <filter id="hp-clusterBlur">
-            <feGaussianBlur stdDeviation="18" />
+          <filter id="hp-clusterBlur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="30" />
           </filter>
         </defs>
 
@@ -362,17 +376,17 @@ export default function HeroPipelineAnimation() {
         {CLUSTERS.map((c, i) => (
           <ellipse
             key={`cl-${i}`}
-            cx={(c.cx / 100) * w}
-            cy={(c.cy / 100) * h}
-            rx={(c.rx / 100) * w}
-            ry={(c.ry / 100) * h}
+            cx={c.cx * 10}
+            cy={c.cy * 10}
+            rx={c.rx * 10}
+            ry={c.ry * 10}
             fill="rgba(139,92,246,0.04)"
             filter="url(#hp-clusterBlur)"
           />
         ))}
 
         {EDGES.slice(0, drawnEdges).map((edge, i) => {
-          const d = edgePath(nodes, edge, w, h);
+          const d = edgePath(nodes, edge, 1000, 1000);
           const lit = highlightedEdges.has(i) || phase === "success";
           const crit = edge.critical;
           return (
@@ -380,10 +394,10 @@ export default function HeroPipelineAnimation() {
               <motion.path
                 d={d}
                 stroke={crit ? "url(#hp-crit)" : "url(#hp-edge)"}
-                strokeWidth={lit ? 2.8 : 1.2}
+                strokeWidth={lit ? 3 : 1.4}
                 fill="none"
                 strokeLinecap="round"
-                opacity={lit ? 0.9 : 0.3}
+                opacity={lit ? 0.85 : 0.25}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ duration: prefersReduced ? 0 : 0.7, delay: i * 0.06, ease: [0.33, 1, 0.68, 1] }}
@@ -395,14 +409,14 @@ export default function HeroPipelineAnimation() {
                   strokeWidth={2}
                   fill="none"
                   strokeLinecap="round"
-                  opacity={0.6}
+                  opacity={0.5}
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
                   transition={{ duration: 0.5, delay: i * 0.04 }}
                 />
               )}
               {!prefersReduced && phase !== "success" && (
-                <circle r={crit ? 1.8 : 1.2} fill={crit ? "#f87171" : "#a78bfa"} opacity={lit ? 0.8 : 0.35}>
+                <circle r={crit ? 2.5 : 1.8} fill={crit ? "#f87171" : "#a78bfa"} opacity={lit ? 0.7 : 0.3}>
                   <animateMotion dur={crit ? "2.5s" : "4s"} repeatCount="indefinite" path={d} />
                 </circle>
               )}
@@ -695,6 +709,67 @@ export default function HeroPipelineAnimation() {
         )}
       </AnimatePresence>
 
+      {/* ── GitHub PR merged card ── */}
+      <AnimatePresence>
+        {showPR && phase === "pr" && (
+          <motion.div
+            className="heroPipeline__prCard"
+            initial={{ opacity: 0, scale: 0.92, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="heroPipeline__prCardHeader">
+              <GitPullRequest className="w-4 h-4" style={{ color: "#8b5cf6" }} />
+              <span className="heroPipeline__prCardTitle">fix: rotate secrets & add .gitignore</span>
+              <span className="heroPipeline__prCardMerged">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Merged
+              </span>
+            </div>
+            <div className="heroPipeline__prCardBody">
+              <div className="heroPipeline__prCardMeta">
+                <span className="heroPipeline__prCardBranch">security/rotate-keys</span>
+                <span style={{ color: "rgba(255,255,255,0.2)" }}>→</span>
+                <span className="heroPipeline__prCardBranch">main</span>
+              </div>
+              <div className="heroPipeline__prCardStats">
+                <span style={{ color: "#34d399" }}>+24</span>
+                <span style={{ color: "#f87171" }}>−18</span>
+                <span style={{ color: "rgba(255,255,255,0.3)" }}>5 files</span>
+              </div>
+              <div className="heroPipeline__prCardChecks">
+                <div className="heroPipeline__prCardCheck">
+                  <CheckCircle2 className="w-3 h-3" style={{ color: "#34d399" }} />
+                  <span>CI / build</span>
+                </div>
+                <div className="heroPipeline__prCardCheck">
+                  <CheckCircle2 className="w-3 h-3" style={{ color: "#34d399" }} />
+                  <span>Security scan</span>
+                </div>
+                <div className="heroPipeline__prCardCheck">
+                  <CheckCircle2 className="w-3 h-3" style={{ color: "#34d399" }} />
+                  <span>Tests (5/5)</span>
+                </div>
+                <div className="heroPipeline__prCardCheck">
+                  <CheckCircle2 className="w-3 h-3" style={{ color: "#34d399" }} />
+                  <span>Lint</span>
+                </div>
+              </div>
+            </div>
+            <motion.div
+              className="heroPipeline__prCardShield"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5, type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <CheckCircle2 className="w-8 h-8" style={{ color: "#34d399" }} />
+              <span>SAFE</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Scrub bar ── */}
       <div className="heroPipeline__scrubWrap">
         <div ref={scrubRef} className="heroPipeline__scrubTrack" onMouseDown={handleScrub}>
@@ -721,6 +796,7 @@ export default function HeroPipelineAnimation() {
           {phase === "testing" && "Running verification suite"}
           {phase === "slider" && "Before → After"}
           {phase === "success" && "All checks passed"}
+          {phase === "pr" && "PR merged to main"}
         </motion.div>
       </AnimatePresence>
     </div>
