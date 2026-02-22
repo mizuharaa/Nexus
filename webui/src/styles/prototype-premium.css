@@ -12,15 +12,40 @@
 /* Premium Logo */
 .nexus-logo-premium {
   font-family: 'Sora', sans-serif;
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.15em;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   text-decoration: none;
-  background: linear-gradient(135deg, #7B5CFF 0%, #C14CFF 100%);
+  background: linear-gradient(135deg, #a78bfa 0%, #c084fc 40%, #e879f9 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  position: relative;
+  padding-left: 18px;
+}
+
+.nexus-logo-premium::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #a78bfa, #e879f9);
+}
+
+.nexus-logo-premium::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 25%;
+  bottom: 25%;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #a78bfa, #c084fc);
+  opacity: 0.4;
 }
 
 /* Headline Block - Safe Width */

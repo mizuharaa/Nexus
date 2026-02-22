@@ -6,61 +6,71 @@ const cards = [
     num: "01",
     title: "Scan",
     badge: "Discovery",
-    lines: [
-      "Clone your repo and parse every file, import, and dependency edge.",
-      "Build a full knowledge graph of your codebase in seconds.",
+    desc: "Your entire codebase — mapped in seconds. Every file, import, and dependency edge becomes a node in a living knowledge graph.",
+    features: [
+      "Deep dependency mapping across all languages and frameworks",
+      "Git history analysis to surface hidden risk patterns",
+      "Automated codebase health scoring with actionable metrics",
     ],
     accent: "#8b5cf6",
-    glow: "rgba(139, 92, 246, 0.07)",
-    border: "rgba(139, 92, 246, 0.14)",
+    glow: "rgba(139, 92, 246, 0.08)",
+    border: "rgba(139, 92, 246, 0.15)",
   },
   {
     num: "02",
     title: "Plan",
     badge: "Strategy",
-    lines: [
-      "AI maps risk zones, tech debt hotspots, and architectural weak points.",
-      "Generates a prioritized action plan ranked by impact and urgency.",
+    desc: "Before a single line changes, AI builds a ranked remediation roadmap. Every risk zone, every hotspot, every weak point — prioritized.",
+    features: [
+      "Risk-ranked remediation roadmap by impact and urgency",
+      "Three strategic paths compared: expand, stabilize, pivot",
+      "Impact analysis and blast radius prediction per change",
     ],
     accent: "#6366f1",
-    glow: "rgba(99, 102, 241, 0.07)",
-    border: "rgba(99, 102, 241, 0.14)",
+    glow: "rgba(99, 102, 241, 0.08)",
+    border: "rgba(99, 102, 241, 0.15)",
   },
   {
     num: "03",
     title: "Fix",
     badge: "Execution",
-    lines: [
-      "Autonomous agents write, refactor, and patch code across your stack.",
-      "Every change is sandboxed and validated before it touches production.",
+    desc: "Autonomous agents write production-grade code across your stack. Multi-file refactors, test generation, and patches — all sandboxed.",
+    features: [
+      "Multi-file refactoring in isolated sandbox environments",
+      "Test-first code generation with scope-locked boundaries",
+      "Dependency-aware patching that respects your architecture",
     ],
     accent: "#22d3ee",
-    glow: "rgba(34, 211, 238, 0.06)",
-    border: "rgba(34, 211, 238, 0.12)",
+    glow: "rgba(34, 211, 238, 0.07)",
+    border: "rgba(34, 211, 238, 0.13)",
   },
   {
     num: "04",
     title: "Verify",
     badge: "Assurance",
-    lines: [
-      "Runs tests, lints, and security scans against every generated diff.",
-      "Nothing ships without passing your existing CI/CD pipeline gates.",
+    desc: "Every generated diff runs through your full pipeline. Tests, lints, security scans — nothing touches production without passing your gates.",
+    features: [
+      "Full CI/CD pipeline integration with existing workflows",
+      "Security vulnerability scanning on every generated diff",
+      "Automated regression testing with coverage enforcement",
     ],
     accent: "#34d399",
-    glow: "rgba(52, 211, 153, 0.06)",
-    border: "rgba(52, 211, 153, 0.12)",
+    glow: "rgba(52, 211, 153, 0.07)",
+    border: "rgba(52, 211, 153, 0.13)",
   },
   {
     num: "05",
     title: "Ship",
     badge: "Delivery",
-    lines: [
-      "Opens clean pull requests with full context, reasoning, and audit trail.",
-      "One-click merge — your codebase evolves while you focus on what matters.",
+    desc: "Clean pull requests with full context, reasoning, and audit trail. Your codebase evolves while you focus on building what matters.",
+    features: [
+      "Context-rich pull requests with complete reasoning chains",
+      "Full audit trail for compliance and team visibility",
+      "One-click merge with automatic rollback safety nets",
     ],
     accent: "#f472b6",
-    glow: "rgba(244, 114, 182, 0.06)",
-    border: "rgba(244, 114, 182, 0.12)",
+    glow: "rgba(244, 114, 182, 0.07)",
+    border: "rgba(244, 114, 182, 0.13)",
   },
 ];
 
@@ -120,15 +130,28 @@ export default function StackingCards() {
               {card.num}
             </span>
 
-            <span className="stackCard__badge">{card.badge}</span>
+            <div className="stackCard__content">
+              <div className="stackCard__left">
+                <span className="stackCard__badge">{card.badge}</span>
+                <h3 className="stackCard__title">{card.title}</h3>
+                <p className="stackCard__desc">{card.desc}</p>
+              </div>
 
-            <h3 className="stackCard__title">{card.title}</h3>
-            <p className="stackCard__body">{card.lines[0]}</p>
-            <p className="stackCard__body">{card.lines[1]}</p>
+              <ul className="stackCard__features">
+                {card.features.map((f, fi) => (
+                  <li key={fi} className="stackCard__feature">
+                    <span
+                      className="stackCard__featureDot"
+                      style={{ background: card.accent }}
+                    />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </article>
         ))}
 
-        {/* Spacer gives the last card scroll room so sticky engages */}
         <div style={{ height: "50vh" }} aria-hidden="true" />
       </div>
     </section>

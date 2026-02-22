@@ -335,6 +335,18 @@ export default function LandingPage() {
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
   const heroScale = useTransform(scrollY, [0, 300], [1, 0.95]);
 
+  // Scroll-linked background hue shift
+  const bgDark = useTransform(
+    scrollY,
+    [0, 1800, 3600, 5400, 7200, 9000],
+    ["#0B0B12", "#100820", "#08101a", "#081210", "#14081c", "#0B0B12"]
+  );
+  const bgLight = useTransform(
+    scrollY,
+    [0, 1800, 3600, 5400, 7200, 9000],
+    ["#F5F5F7", "#F0EEF8", "#EDF3F7", "#EFF6F0", "#F6EEF4", "#F5F5F7"]
+  );
+
   // Dashboard scroll-linked zoom + tilt
   const guardrailsRef = useRef<HTMLElement>(null);
   const { scrollYProgress: grScroll } = useScroll({
@@ -355,12 +367,11 @@ export default function LandingPage() {
   const ctaY = useTransform(ctaScroll, [0, 1], [40, 0]);
 
   return (
-    <div
+    <motion.div
       className="min-h-screen relative"
       style={{
         overflowX: "clip",
-        background: isDark ? "#0B0B12" : "#F5F5F7",
-        transition: "background 0.45s ease",
+        backgroundColor: isDark ? bgDark : bgLight,
       }}
     >
       {/* Noise Texture Overlay */}
@@ -868,6 +879,6 @@ export default function LandingPage() {
           100% { transform: translateX(-50%); }
         }
       `}</style>
-    </div>
+    </motion.div>
   );
 }
