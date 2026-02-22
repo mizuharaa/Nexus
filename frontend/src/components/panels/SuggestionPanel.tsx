@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { buildFeature } from "@/services/api";
+import { useEffect, useState } from "react";
+import { buildFeature, generateSuggestionsWithCriteria } from "@/services/api";
 import type { FeatureSuggestion } from "@/types";
 import { ExecutionModal } from "@/components/modals/ExecutionModal";
 
 interface SuggestionPanelProps {
-  nodeId: string;
-  suggestions: FeatureSuggestion[];
+  nodeId?: string;
+  suggestions?: FeatureSuggestion[];
   loading?: boolean;
-  onClose: () => void;
+  onClose?: () => void;
+  criteria?: Record<string, string>;
 }
 
 const COMPLEXITY_STYLES: Record<string, string> = {
@@ -19,14 +20,22 @@ const COMPLEXITY_STYLES: Record<string, string> = {
 };
 
 export function SuggestionPanel({
-  nodeId,
-  suggestions,
+  nodeId = '',
+  suggestions = [],
   loading = false,
-  onClose,
+  onClose = () => {},
+  criteria,
 }: SuggestionPanelProps) {
   const [executionRunId, setExecutionRunId] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
+  const [criteriaSuggestions, setCriteriaSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (criteria) {
+      generateSuggestionsWithCriteria(criteria).then(setCriteriaSuggestions);
+    }
+  }, [criteria]);
 
   const handleBuild = async (suggestion: FeatureSuggestion) => {
     setBuilding(suggestion.id);
@@ -170,6 +179,15 @@ export function SuggestionPanel({
         )}
       </div>
 
+      {/* Criteria-based suggestions */}
+      {criteriaSuggestions.length > 0 && (
+        <div className="p-4 space-y-2">
+          {criteriaSuggestions.map((suggestion, index) => (
+            <div key={index}>{suggestion}</div>
+          ))}
+        </div>
+      )}
+
       {/* Execution modal */}
       {executionRunId && (
         <ExecutionModal
@@ -180,3 +198,5 @@ export function SuggestionPanel({
     </div>
   );
 }
+
+export default SuggestionPanel;

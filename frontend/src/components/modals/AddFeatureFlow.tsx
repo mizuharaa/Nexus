@@ -26,8 +26,8 @@ interface CreatedSuggestion {
 }
 
 interface AddFeatureFlowProps {
-  repoId: string;
-  onClose: () => void;
+  repoId?: string;
+  onClose?: () => void;
 }
 
 const COMPLEXITY_STYLES: Record<string, string> = {
@@ -36,17 +36,23 @@ const COMPLEXITY_STYLES: Record<string, string> = {
   high: "bg-red-500/10 text-red-400",
 };
 
-export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
+export function AddFeatureFlow({ repoId = '', onClose = () => {} }: AddFeatureFlowProps) {
   const [step, setStep] = useState<Step>({ type: "input" });
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [criteria, setCriteria] = useState<Record<string, string>>({});
+
+  const handleCriteriaChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setCriteria({ ...criteria, [name]: value });
+  };
 
   async function handleDescriptionSubmit() {
     if (!description.trim()) return;
     setError(null);
     setStep({ type: "loading-placement" });
     try {
-      const result = await suggestPlacement(repoId, description.trim());
+      const result = await suggestPlacement(repoId, description.trim(), criteria);
       setStep({ type: "placement", candidates: result.candidates });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to find placement");
@@ -58,7 +64,7 @@ export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
     setError(null);
     setStep({ type: "loading-suggestion", candidateNodeId: candidate.node_id, candidateName: candidate.node_name });
     try {
-      const suggestion = await createSuggestion(repoId, candidate.node_id, description.trim());
+      const suggestion = await createSuggestion(repoId, candidate.node_id, description.trim(), criteria);
       setStep({ type: "confirm", suggestion, parentNodeId: candidate.node_id });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create suggestion");
@@ -122,6 +128,22 @@ export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
           {/* Step: input */}
           {step.type === "input" && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  aria-label="criterion1"
+                  name="criterion1"
+                  onChange={handleCriteriaChange}
+                  className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <input
+                  type="text"
+                  aria-label="criterion2"
+                  name="criterion2"
+                  onChange={handleCriteriaChange}
+                  className="w-full rounded-lg border border-border bg-muted/30 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
               <textarea
                 autoFocus
                 value={description}
@@ -232,3 +254,5 @@ export function AddFeatureFlow({ repoId, onClose }: AddFeatureFlowProps) {
     </div>
   );
 }
+
+export default AddFeatureFlow;

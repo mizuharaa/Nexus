@@ -96,22 +96,24 @@ export async function canUndo(repoId: string): Promise<boolean> {
 
 export async function suggestPlacement(
   repoId: string,
-  description: string
+  description: string,
+  criteria?: Record<string, string>
 ): Promise<{ candidates: { node_id: string; node_name: string; rationale: string }[] }> {
   return fetchJSON(`/api/repos/${repoId}/suggest-placement`, {
     method: "POST",
-    body: JSON.stringify({ description }),
+    body: JSON.stringify({ description, criteria }),
   });
 }
 
 export async function createSuggestion(
   repoId: string,
   parentNodeId: string,
-  description: string
+  description: string,
+  criteria?: Record<string, string>
 ): Promise<FeatureSuggestion> {
   return fetchJSON<FeatureSuggestion>(`/api/repos/${repoId}/create-suggestion`, {
     method: "POST",
-    body: JSON.stringify({ parent_node_id: parentNodeId, description }),
+    body: JSON.stringify({ parent_node_id: parentNodeId, description, criteria }),
   });
 }
 
@@ -175,6 +177,17 @@ export async function sendPlanMessage(
 
 export async function startNewPlan(repoId: string): Promise<{ conversation_id: string; messages: PlanMessage[] }> {
   return fetchJSON(`/api/repos/${repoId}/plan/new`, { method: "POST" });
+}
+
+// ---- Suggestions with Criteria ----
+
+export async function generateSuggestionsWithCriteria(
+  criteria: Record<string, string>
+): Promise<string[]> {
+  return fetchJSON<string[]>('/api/suggestions/by-criteria', {
+    method: 'POST',
+    body: JSON.stringify({ criteria }),
+  });
 }
 
 // ---- Execution ----

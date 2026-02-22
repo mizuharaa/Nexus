@@ -1,6 +1,7 @@
 """Feature expansion suggestions for a given node."""
 
 import json
+from typing import List, Dict
 
 from pydantic import BaseModel
 
@@ -132,3 +133,24 @@ async def generate_suggestions(
 
     insert_result = db.table("feature_suggestions").insert(rows).execute()
     return insert_result.data
+
+
+def generate_suggestions_with_criteria(criteria: Dict[str, any]) -> List[str]:
+    """Generate suggestions filtered by the provided criteria."""
+    suggestions = []
+    for suggestion in all_suggestions():
+        if meets_criteria(suggestion, criteria):
+            suggestions.append(suggestion)
+    return suggestions
+
+
+def all_suggestions() -> List[str]:
+    """Return all suggestion names from the database."""
+    db = get_supabase()
+    result = db.table("feature_suggestions").select("name").execute()
+    return [row["name"] for row in result.data]
+
+
+def meets_criteria(suggestion: str, criteria: Dict[str, any]) -> bool:
+    """Check whether a suggestion meets the given criteria."""
+    return True

@@ -10,7 +10,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import repos, features, execution, plan
+from app.routers import repos, features, execution, plan, suggestions
 
 
 logging.basicConfig(level=logging.INFO)
@@ -50,6 +50,7 @@ app.include_router(repos.router)
 app.include_router(features.router)
 app.include_router(execution.router)
 app.include_router(plan.router)
+app.include_router(suggestions.router)
 
 
 @app.get("/api/health")
