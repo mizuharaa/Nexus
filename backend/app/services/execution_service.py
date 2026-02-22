@@ -495,7 +495,6 @@ async def _invoke_claude_code(
     cmd = [
         *claude_cmd,
         "-p", prompt,
-        "--allowedTools", "Read,Edit,Write,Bash,Glob,Grep",
         "--output-format", "stream-json",
         "--verbose",
     ]
@@ -860,8 +859,8 @@ async def execute_build_phase(execution_run_id: str) -> None:
                     f"Read Plan.md and implement the feature exactly as described.\n"
                     f"Follow the plan step by step.\n"
                     f"IMPORTANT: Only read files that Plan.md explicitly tells you to create or modify. "
-                    f"Do NOT explore the rest of the codebase — you will run out of context.\n"
-                    f"Do NOT use TodoWrite or any todo/task management tools — implement directly without planning.\n"
+                    f"Do NOT use the Task tool to spawn subagents or explore the codebase broadly — "
+                    f"you will run out of context.\n"
                     f"The test file is at {test_file_ref}. Run it to verify your implementation.\n"
                     f"Do not modify .env, CI configs, or deployment configs.\n"
                     f"Max 25 files changed."
@@ -870,8 +869,8 @@ async def execute_build_phase(execution_run_id: str) -> None:
                 prompt = (
                     f"The previous implementation attempt failed verification.\n"
                     f"Read Plan.md for requirements. Fix only what the verification output says is wrong.\n"
-                    f"IMPORTANT: Only read files you actually need to fix — do NOT re-explore the codebase.\n"
-                    f"Do NOT use TodoWrite or any todo/task management tools — fix directly.\n"
+                    f"IMPORTANT: Only read files you actually need to fix. "
+                    f"Do NOT use the Task tool to spawn subagents.\n"
                     f"Do not modify .env, CI configs, or deployment configs.\n\n"
                     f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
@@ -1026,8 +1025,8 @@ async def retry_build_phase(execution_run_id: str) -> None:
             f"Read Plan.md and implement the feature exactly as described.\n"
             f"Follow the plan step by step.\n"
             f"IMPORTANT: Only read files that Plan.md explicitly tells you to create or modify. "
-            f"Do NOT explore the rest of the codebase — you will run out of context.\n"
-            f"Do NOT use TodoWrite or any todo/task management tools — implement directly without planning.\n"
+            f"Do NOT use the Task tool to spawn subagents or explore the codebase broadly — "
+            f"you will run out of context.\n"
             f"The test file is at {test_file_ref}. Run it to verify your implementation.\n"
             f"Do not modify .env, CI configs, or deployment configs.\n"
             f"Max 25 files changed."
@@ -1069,8 +1068,8 @@ async def retry_build_phase(execution_run_id: str) -> None:
                 prompt = (
                     f"The previous implementation attempt failed verification.\n"
                     f"Read Plan.md for requirements. Fix only what the verification output says is wrong.\n"
-                    f"IMPORTANT: Only read files you actually need to fix — do NOT re-explore the codebase.\n"
-                    f"Do NOT use TodoWrite or any todo/task management tools — fix directly.\n"
+                    f"IMPORTANT: Only read files you actually need to fix. "
+                    f"Do NOT use the Task tool to spawn subagents.\n"
                     f"Do not modify .env, CI configs, or deployment configs.\n\n"
                     f"Verification output from the failed attempt:\n{last_verify_error}"
                 )
