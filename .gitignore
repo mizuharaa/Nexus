@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-node_modules/
-dist/
-.env
-.env.local
-*.log
-.DS_Store
-Thumbs.db
-=======
 # Dependencies
 node_modules/
 .venv/
@@ -37,4 +28,4 @@ sandboxes/
 # Misc
 *.pyc
 *.pyo
->>>>>>> upstream/main
+*.log
