@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd /c \"del /q \"\"C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\frontend\\\\src\\\\components\\\\panels\\\\BranchPanel.tsx\"\" && del /q \"\"C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\routers\\\\branches.py\"\" && del /q \"\"C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\services\\\\simulation_service.py\"\" && del /q \"\"C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\schemas\\\\branches.py\"\" && echo done\")",
+      "Bash(powershell -Command \"Remove-Item ''C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\frontend\\\\src\\\\components\\\\panels\\\\BranchPanel.tsx''; Remove-Item ''C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\routers\\\\branches.py''; Remove-Item ''C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\services\\\\simulation_service.py''; Remove-Item ''C:\\\\Users\\\\VietM\\\\OneDrive\\\\Documents\\\\VietMySpace\\\\Product_Evolution_Engine\\\\backend\\\\app\\\\schemas\\\\branches.py''; Write-Host ''deleted''\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path ''C:\\\\Users\\\\VietM'' -Recurse -Filter ''BranchPanel.tsx'' -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-PSDrive | Select-Object Name, Root\")"
+    ]
+  }
+}

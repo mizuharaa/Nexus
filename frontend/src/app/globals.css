@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-destructive: var(--destructive);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
+  --primary: #6d28d9;
+  --primary-foreground: #fafafa;
+  --accent: #18181b;
+  --accent-foreground: #fafafa;
+  --card: #0f0f13;
+  --card-foreground: #fafafa;
+  --destructive: #dc2626;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Graph - transparent so fullscreen dot grid shows through */
+.graph-with-dot-bg .react-flow,
+.graph-with-dot-bg .react-flow__viewport {
+  background: transparent !important;
+}
+
+/* Controls (fit view, zoom in, zoom out) - dark theme for visibility */
+.react-flow {
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+}
+.react-flow__controls-button {
+  background-color: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+.react-flow__controls-button:hover {
+  background-color: var(--muted) !important;
+  color: var(--foreground) !important;
+}
+.react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+/* Dark-themed scrollbar for panels */
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted) transparent;
+}
+.scrollbar-dark::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
